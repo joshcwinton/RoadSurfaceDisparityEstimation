@@ -1,0 +1,17 @@
+#+TITLE: Road Surface Disparity Estimation
+
+This project was created as a final project for the Computer Vision course at Hunter College in Spring 2020.
+
+The algorithms used are based largely on those presented in these papers:
+1. [[https://www.eurasip.org/Proceedings/Eusipco/Eusipco2013/papers/1569743475.pdf][Efficient Disparity Calculation Based on Stereo Vision With Ground Obstacle Assumption [Zhang et al., 2013]​]]
+2. [[https://www.researchgate.net/publication/322589687_Real-time_implementation_of_stereo_vision_based_on_optimised_normalised_cross-correlation_and_propagated_search_range_on_a_GPU][Real-Time Implementation of Stereo Vision Based on Optimised Normalized Cross-Correlation and Propagated Search Range on a GPU [Fan & Dahnoun, 2017]​]]
+3. [[https://arxiv.org/abs/1807.01874][Road Surface 3D Reconstruction Based on Dense Subpixel Disparity Map Estimation [Fan et al., 2018]​]]
+
+We used the following datasets to test and build our project:
+1. [[http://www.cvlibs.net/datasets/kitti/][KITTI]]
+2. Other ones
+
+* Installation
+#+begin_src 
+python3 -m pip install -r requirements.txt
+#+end_src
