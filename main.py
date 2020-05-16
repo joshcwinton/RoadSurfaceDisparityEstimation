@@ -17,7 +17,7 @@ import copy
 
 # Sample run
 # python3 main.py --left_img=Datasets/Rui/dataset1/original_left/1.png --right_img=Datasets/Rui/dataset1/original_right/1.png --paper="2013"
-# python3 main.py --left_img=Datasets/KITTI/testing/image_2/000000_10.png --right_img=Datasets/KITTI/testing/image_3/000000_10.png --paper="2013"
+# python3 main.py --left_img=Datasets/KITTI/Images/testing/image_2/000000_10.png --right_img=Datasets/KITTI/Images/testing/image_3/000000_10.png --paper="2013"
 
 
 def read_images(lfp, rfp):
@@ -74,46 +74,40 @@ def paper_2013(img_l, img_r, min_keypoints, min_matches):
     # Borrowed from feature matching tutorial
     # Match keypoints - may want to change this to FLANN
     bfm = cv.BFMatcher(cv.NORM_HAMMING)
-    matches = bfm.match(desc_l, desc_r)
-    # matches = bfm.knnMatch(desc_l, desc_r, k=2)
-    # ic(matches)
-    matches = sorted(matches, key=lambda x: x.distance)
+    # matches = bfm.match(desc_l, desc_r)
+    matches = bfm.knnMatch(desc_l, desc_r, k=2)
+    # matches = sorted(matches, key=lambda x: x.distance)
     print("Number of matches: ", len(matches))
-    img_matches = cv.drawMatches(img_l, keypoints_l, img_r, keypoints_r,
-                                 matches[:1000], None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    cv.imshow("Matches", img_matches)
+    # img_matches = cv.drawMatches(img_l, keypoints_l, img_r, keypoints_r,
+    #  matches[:1000], None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    # cv.imshow("Matches", img_matches)
     # cv.waitKey(0)
 
     # Get fundamental matrix
     good_matches = []
-    # for m, n in matches:
-    #     if m.distance < 0.75*n.distance:
-    #         good_matches.append(m)
-    for m in matches:
-        # print(m.distance)
-        if m.distance < 1000:
+    for m, n in matches:
+        if m.distance < 0.68*n.distance:
             good_matches.append(m)
 
+    print(len(good_matches))
+    img_matches = cv.drawMatches(img_l, keypoints_l, img_r, keypoints_r,
+                                 good_matches, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    cv.imshow("Good Matches", img_matches)
     if len(good_matches) > min_matches:
-        src_pts = []
-        dst_pts = []
-        for i in range(4):
-            src_pts.append(list(keypoints_l[good_matches[i].queryIdx].pt))
-            dst_pts.append(list(keypoints_r[good_matches[i].trainIdx].pt))
+        src_pts = np.float32(
+            [keypoints_l[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+        dst_pts = np.float32(
+            [keypoints_r[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
-        src_pts = np.float32(src_pts)
-        dst_pts = np.float32(dst_pts)
-
-        ic(type(src_pts))
-        ic(src_pts)
-
-# topLeftDest = [0, 0]
-# dest = np.float32([topLeftDest,bottomLeftDest, topRightDest, \
-#         bottomRightDest])
-
-        matrix = cv.getPerspectiveTransform(src_pts, dst_pts)
+        fund_mat, mask = cv.findFundamentalMat(src_pts, dst_pts)
+        res, H1, H2 = cv.stereoRectifyUncalibrated(
+            src_pts, dst_pts, fund_mat, img_l.shape, 10)
         img_l_transformed = cv.warpPerspective(
-            img_l, matrix, (img_l.shape[1], img_l.shape[0]))
+            src=img_l, M=H1, dsize=(img_l.shape[1], img_l.shape[0]))
+        img_r_transformed = cv.warpPerspective(
+            src=img_r, M=H2, dsize=(img_l.shape[1], img_l.shape[0]))
+        # img_l_transformed=cv.warpPerspective(
+        #     img_l, matrix, (img_l.shape[1], img_l.shape[0]))
         # src_pts = np.float32(
         #     [keypoints_l[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
         # dst_pts = np.float32(
@@ -140,6 +134,7 @@ def paper_2013(img_l, img_r, min_keypoints, min_matches):
         # print(img_l.shape)
         # print(img_l_transformed.shape)
         cv.imshow("Transformed LEFT", img_l_transformed)
+        cv.imshow("Transformed RIGHT", img_r_transformed)
         cv.imshow("left", img_l)
         cv.imshow("right", img_r)
         cv.waitKey(0)
