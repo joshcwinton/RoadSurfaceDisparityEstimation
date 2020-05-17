@@ -56,11 +56,43 @@ def check_keypoints(keypoints, orientation, minimum):
 # Disparity calculation algorithm
 # Assumes rectified input images
 def paper_2013(img_l, img_r, w, dmax, tau):
+	# Algorithm 1
+	# NOTE: The paper mixes up u and v - u is specified as row and v is 
+	# specified as column number, but they then use the reverse. We have 
+	# kept the labels but reversed the order for proper (row, col) order.
+	# "Vmax" - bottom row 
+	
+	# The algorithm does not specify how to properly handle the template window 
+	# size with the maximum row. Here we have zero-padded for proper handling.
+	pad = int((w-1) / 2)
+	shape = img_l.shape
+	padded_shape = (shape[0] + 2*pad, shape[1] + 2*pad)
+	padded_img_l = np.zeros(padded_shape, dtype=np.uint8)
+	padded_img_l[pad:pad + shape[0], pad:pad + shape[1]] = img_l
+	padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
+	padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
 
+	disp = np.empty(img_l.shape, dtype=np.uint8)
+	# get disparities for bottom row
+	v_max = shape[0] + pad - 1
+	u_max = shape[1] + pad - 1 
+	for u in range(pad,u_max + 1):
+		# Create "template"
+		template = padded_img_l[v_max-pad:v_max+pad+1, u-pad:u+pad+1]
+		# Select "image"
+		image_for_search = padded_img_r[v_max-pad:v_max+pad+1, max(u-dmax-pad,pad):u+pad+1]
+		# calculate disparity for each pixel
+		result = cv.matchTemplate(image_for_search, template, method=cv.TM_CCORR_NORMED)
+		_,_,_,disparity = cv.minMaxLoc(result)
+		disp[v_max-pad,u-pad] = disparity[0]
+			
+	for v in range(v_max-1,pad-1, -1):
+		for u in range(pad,u_max + 1):
 
+		
 def paper_2017():
 	pass
-
+	
 def paper_2018():
 	# Create detector and detect keypoints
 	# May want to specify parameters for BRISK
@@ -176,7 +208,7 @@ def main():
 	img_l, img_r = read_images(args.left_img, args.right_img)
 
 	# 2013 paper
-	if(args.paper == "2013")
+	if(args.paper == "2013"):
 		paper_2013(img_l, img_r, args.w, args.dmax, args.tau)
 
 
