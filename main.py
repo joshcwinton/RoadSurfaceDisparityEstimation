@@ -87,31 +87,51 @@ def paper_2013(img_l, img_r, w, dmax, tau):
         # calculate disparity for each pixel
         result = cv.matchTemplate(
             image_for_search, template, method=cv.TM_CCORR_NORMED)
-        _, _, _, disparity = cv.minMaxLoc(result)
-        disp[v_max-pad, u-pad] = 100 - disparity[0]
+        _, _, _, index = cv.minMaxLoc(result)
+        # minMaxLoc returns the x (col), y (row) of the max number in the array
+        # here we just want the column, but we need to subtract from the length
+        # to convert from index to disparity
+        disp[v_max-pad, u-pad] = (result.shape[1]-1) - index[0]
 
     # for remaining rows
     for v in range(v_max-1, pad-1, -1):
         # for each column
         for u in range(pad, u_max + 1):
+            search_range = {}
+            # all ranges must have 1 added to the right term for inclusion
             # get down left search range
-            dl_search_range = range(
-                disp[v-pad+1, u-pad-1]-tau, disp[v-pad+1, u-pad-1]+tau)
+            if(u-pad-1 >= 0):
+                for i in range(
+                    disp[v-pad+1, u-pad-1]-tau, disp[v-pad+1, u-pad-1]+tau+1):
+                    if i not in search_range:
+                        search_range[i] = i
             # get down search range
-            d_search_range = range(
-                disp[v-pad+1, u-pad]-tau, disp[v-pad+1, u-pad]+tau)
+            for i in range(
+                disp[v-pad+1, u-pad]-tau, disp[v-pad+1, u-pad]+tau+1):
+                if i not in search_range:
+                    search_range[i] = i
             # get down right search range
-            dr_search_range = range
+            if(u-pad+1 < shape[1]):
+                for i in range(
+                    disp[v-pad+1, u-pad+1]-tau, disp[v-pad+1, u-pad+1]+tau+1):
+                    if i not in search_range:
+                        search_range[i] = i
             # Create "template"
             template = padded_img_l[v-pad:v+pad+1, u-pad:u+pad+1]
-            # Select "image"
-            image_for_search = padded_img_r[v-pad:v+pad+1,
-                                            max(u-search_range-pad, pad):u+pad+1]
-            # calculate disparity for each pixel
-            result = cv.matchTemplate(
-                image_for_search, template, method=cv.TM_CCORR_NORMED)
-            _, _, _, disparity = cv.minMaxLoc(result)
-            disp[v-pad, u-pad] = disparity[0]
+            # Iterate through image segments and calculate NCC
+            highest_correlation = -1
+            highest_correlation_disparity = 0
+            for d in search_range:
+                if(u-d-pad >= 0):
+                    image_for_search = padded_img_r[v-pad:v+pad+1,
+                        u-d-pad:u-d+pad+1]
+                    result = cv.matchTemplate(image_for_search, template, 
+                        method=cv.TM_CCORR_NORMED)[0][0]
+                    if(result > highest_correlation):
+                        highest_correlation = result
+                        highest_correlation_disparity = d
+            
+            disp[v-pad, u-pad] = highest_correlation_disparity
 
     cv.imwrite("disp.png", disp)
 
