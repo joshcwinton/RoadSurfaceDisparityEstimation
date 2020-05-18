@@ -78,6 +78,7 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     # get disparities for bottom row
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
+    start = time.time()
     for u in range(pad, u_max + 1):
         # Create "template"
         template = padded_img_l[v_max-pad:v_max+pad+1, u-pad:u+pad+1]
@@ -101,19 +102,22 @@ def paper_2013(img_l, img_r, w, dmax, tau):
             # all ranges must have 1 added to the right term for inclusion
             # get down left search range
             if(u-pad-1 >= 0):
+                retrieved_d = disp[v-pad+1, u-pad-1]
                 for i in range(
-                    disp[v-pad+1, u-pad-1]-tau, disp[v-pad+1, u-pad-1]+tau+1):
+                    retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range:
                         search_range[i] = i
             # get down search range
+            retrieved_d = disp[v-pad+1, u-pad]
             for i in range(
-                disp[v-pad+1, u-pad]-tau, disp[v-pad+1, u-pad]+tau+1):
+                retrieved_d-tau, retrieved_d+tau+1):
                 if i not in search_range:
                     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
+                retrieved_d = disp[v-pad+1, u-pad+1]
                 for i in range(
-                    disp[v-pad+1, u-pad+1]-tau, disp[v-pad+1, u-pad+1]+tau+1):
+                    retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range:
                         search_range[i] = i
             # Create "template"
@@ -133,7 +137,9 @@ def paper_2013(img_l, img_r, w, dmax, tau):
             
             disp[v-pad, u-pad] = highest_correlation_disparity
 
-    cv.imwrite("disp.png", disp)
+    end = time.time()
+    print("Time elapsed (seconds): ", end - start)
+    #cv.imwrite("disp.png", disp)
 
 
 def paper_2017():
