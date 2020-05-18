@@ -74,7 +74,8 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
     padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
 
-    disp = np.zeros(img_l.shape, dtype=np.uint8)
+    #disp = np.zeros(img_l.shape, dtype=np.uint8)
+    disp = [[0] * shape[1] for i in range(shape[0])]
     # get disparities for bottom row
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
@@ -92,7 +93,7 @@ def paper_2013(img_l, img_r, w, dmax, tau):
         # minMaxLoc returns the x (col), y (row) of the max number in the array
         # here we just want the column, but we need to subtract from the length
         # to convert from index to disparity
-        disp[v_max-pad, u-pad] = (result.shape[1]-1) - index[0]
+        disp[v_max-pad][u-pad] = (result.shape[1]-1) - index[0]
 
     # for remaining rows
     for v in range(v_max-1, pad-1, -1):
@@ -102,20 +103,20 @@ def paper_2013(img_l, img_r, w, dmax, tau):
             # all ranges must have 1 added to the right term for inclusion
             # get down left search range
             if(u-pad-1 >= 0):
-                retrieved_d = disp[v-pad+1, u-pad-1]
+                retrieved_d = disp[v-pad+1][u-pad-1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range:
                         search_range[i] = i
             # get down search range
-            retrieved_d = disp[v-pad+1, u-pad]
+            retrieved_d = disp[v-pad+1][u-pad]
             for i in range(
                 retrieved_d-tau, retrieved_d+tau+1):
                 if i not in search_range:
                     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
-                retrieved_d = disp[v-pad+1, u-pad+1]
+                retrieved_d = disp[v-pad+1][u-pad+1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range:
@@ -135,7 +136,7 @@ def paper_2013(img_l, img_r, w, dmax, tau):
                         highest_correlation = result
                         highest_correlation_disparity = d
             
-            disp[v-pad, u-pad] = highest_correlation_disparity
+            disp[v-pad][u-pad] = highest_correlation_disparity
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
