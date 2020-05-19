@@ -99,48 +99,71 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     for v in range(v_max-1, pad-1, -1):
         # for each column
         for u in range(pad, u_max + 1):
-            search_range = {}
+            min_disparity = 100
+            max_disparity = 0
+            #search_range = {}
             # all ranges must have 1 added to the right term for inclusion
             # get down left search range
             if(u-pad-1 >= 0):
                 retrieved_d = disp[v-pad+1][u-pad-1]
-                for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range:
-                        search_range[i] = i
+                possible_min = retrieved_d-tau
+                possible_max = retrieved_d+tau
+                # for i in range(
+                #     retrieved_d-tau, retrieved_d+tau+1):
+                if possible_max > max_disparity:
+                    max_disparity = possible_max
+                elif possible_min < min_disparity:
+                    min_disparity = possible_min
+                    # if i not in search_range:
+                    #     search_range[i] = i
             # get down search range
             retrieved_d = disp[v-pad+1][u-pad]
-            for i in range(
-                retrieved_d-tau, retrieved_d+tau+1):
-                if i not in search_range:
-                    search_range[i] = i
+            # for i in range(
+            #     retrieved_d-tau, retrieved_d+tau+1):
+            possible_min = retrieved_d-tau
+            possible_max = retrieved_d+tau
+            if possible_max > max_disparity:
+                max_disparity = possible_max
+            elif possible_min < min_disparity:
+                min_disparity = possible_min
+                # if i not in search_range:
+                #     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
                 retrieved_d = disp[v-pad+1][u-pad+1]
-                for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range:
-                        search_range[i] = i
+                # for i in range(
+                #     retrieved_d-tau, retrieved_d+tau+1):
+                possible_min = retrieved_d-tau
+                possible_max = retrieved_d+tau
+                if possible_max > max_disparity:
+                    max_disparity = possible_max
+                elif possible_min < min_disparity:
+                    min_disparity = possible_min
+                    # if i not in search_range:
+                    #     search_range[i] = i
             # Create "template"
             template = padded_img_l[v-pad:v+pad+1, u-pad:u+pad+1]
             # Iterate through image segments and calculate NCC
-            highest_correlation = -1
-            highest_correlation_disparity = 0
-            for d in search_range:
-                if(u-d-pad >= 0):
-                    image_for_search = padded_img_r[v-pad:v+pad+1,
-                        u-d-pad:u-d+pad+1]
-                    result = cv.matchTemplate(image_for_search, template, 
-                        method=cv.TM_CCORR_NORMED)[0][0]
-                    if(result > highest_correlation):
-                        highest_correlation = result
-                        highest_correlation_disparity = d
-            
-            disp[v-pad][u-pad] = highest_correlation_disparity
+            # highest_correlation = -1
+            # highest_correlation_disparity = 0
+            #for d in search_range:
+            #if(u-max_disparity-pad >= 0):
+            image_for_search = padded_img_r[v-pad:v+pad+1,
+                max(u-max_disparity-pad, pad):min(u-min_disparity+pad+1, u_max)]
+            if(image_for_search.shape[1] < 5):
+                disp[v-pad][u-pad] = 0
+            else:
+                result = cv.matchTemplate(image_for_search, template, 
+                    method=cv.TM_CCORR_NORMED)
+                _, _, _, index = cv.minMaxLoc(result)
+                    # if(result > highest_correlation):
+                    #     highest_correlation = result
+                    #     highest_correlation_disparity = d
+                disp[v-pad][u-pad] = (result.shape[1]-1) - index[0] + min_disparity
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
-    #cv.imwrite("disp.png", disp)
+    cv.imwrite("dispPLEASE.png", np.array(disp))
 
 
 def paper_2017():
