@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.17)
+project( DisparityTest )
+find_package( OpenCV REQUIRED PATHS "/Users/danielmallia/Documents/Hunter_College/Spring_2020/CSCI49369ComputerVision/FinalProject/build_opencv")
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( DisparityTest test.cc )
+target_link_libraries( DisparityTest ${OpenCV_LIBS} )
