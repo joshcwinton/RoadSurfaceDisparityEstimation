@@ -52,38 +52,12 @@ def check_keypoints(keypoints, orientation, minimum):
         print("Minimum number of keypoints not met for image: ", orientation)
         sys.exit()
 
-# 2013 Algorithm
-# Disparity calculation algorithm
-# Assumes rectified input images
-
-
-def paper_2013(img_l, img_r, w, dmax, tau):
-    # Algorithm 1
-    # NOTE: The paper mixes up u and v - u is specified as row and v is
-    # specified as column number, but they then use the reverse. We have
-    # kept the labels but reversed the order for proper (row, col) order.
-    # "Vmax" - bottom row
-
-    # The algorithm does not specify how to properly handle the template window
-    # size with the maximum row. Here we have zero-padded for proper handling.
-    pad = int((w-1) / 2)
-    shape = img_l.shape 
-    padded_shape = (shape[0] + 2*pad, shape[1] + 2*pad)
-    padded_img_l = np.zeros(padded_shape, dtype=np.uint8)
-    padded_img_l[pad:pad + shape[0], pad:pad + shape[1]] = img_l
-    padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
-    padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
-
-    min_disparity = 10000
+def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
+    min_disparity = shape[1]
     max_disparity = 0
-
-    #disp = np.zeros(img_l.shape, dtype=np.uint8)
     disp = [[0] * shape[1] for i in range(shape[0])]
-    # get disparities for bottom row
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
-    start = time.time()
-
     # V_max disparity calculation
     for u in range(pad, u_max + 1):
         # Create "template"
@@ -152,12 +126,43 @@ def paper_2013(img_l, img_r, w, dmax, tau):
             elif(highest_correlation_disparity < min_disparity):
                 min_disparity = highest_correlation_disparity
 
+    return disp, min_disparity, max_disparity
+
+def normalize_disp_map(disp_map, min_disparity, max_disparity):
+    for i in range(len(disp_map)):
+        for j in range(len(disp_map[0])):
+            disp_map[i][j] = ((disp_map[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
+
+# 2013 Algorithm
+# Disparity calculation algorithm
+# Assumes rectified input images
+def paper_2013(img_l, img_r, w, dmax, tau):
+    # Algorithm 1
+    # NOTE: The paper mixes up u and v - u is specified as row and v is
+    # specified as column number, but they then use the reverse. We have
+    # kept the labels but reversed the order for proper (row, col) order.
+    # "Vmax" - bottom row
+
+    # The algorithm does not specify how to properly handle the template window
+    # size with the maximum row. Here we have zero-padded for proper handling.
+    pad = int((w-1) / 2)
+    shape = img_l.shape 
+    padded_shape = (shape[0] + 2*pad, shape[1] + 2*pad)
+    padded_img_l = np.zeros(padded_shape, dtype=np.uint8)
+    padded_img_l[pad:pad + shape[0], pad:pad + shape[1]] = img_l
+    padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
+    padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
+
+    start = time.time()
+    disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
+        dmax, tau)
+
+
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
-    for i in range(len(disp)):
-        for j in range(len(disp[0])):
-            disp[i][j] = ((disp[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
-    cv.imwrite("left_disp_map.png", np.array(disp, dtype=np.uint8))
+    
+    normalize_disp_map(disp_l, l_min, l_max)
+    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
 
 
 def paper_2017():
