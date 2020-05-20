@@ -209,10 +209,20 @@ def normalize_disp_map(disp_map, min_disparity, max_disparity):
         for j in range(len(disp_map[0])):
             disp_map[i][j] = ((disp_map[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
 
+def left_right_consistency_check_2017(disp_l, disp_r, threshold):
+    for i in range(len(disp_l)):
+        for j in range(len(disp_l[0])):
+            d_l = disp_l[i][j]
+            offset = j - d_l
+            #if (offset >= 0):
+            d_r = disp_r[i][offset]
+            if abs(d_l - d_r) > threshold:
+                disp_l[i][j] = 0 
+
 # 2013 Algorithm
 # Disparity calculation algorithm
 # Assumes rectified input images
-def paper_2013(img_l, img_r, w, dmax, tau):
+def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     # Algorithm 1
     # NOTE: The paper mixes up u and v - u is specified as row and v is
     # specified as column number, but they then use the reverse. We have
@@ -230,20 +240,27 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
 
     start = time.time()
+    # Calculate disparity maps
     disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
         dmax, tau)
     disp_r, r_min, r_max = right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad,
         dmax, tau)
-
-
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
-    
+
+    #Left-right consistency check
+    left_right_consistency_check_2017(disp_l, disp_r, disp_thresh)
+
+    # Normalize disparity maps
     normalize_disp_map(disp_l, l_min, l_max)
-    normalize_disp_map(disp_r, r_min, r_max)
-    cv.waitKey(0)
-    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
-    cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+    #normalize_disp_map(disp_r, r_min, r_max)
+
+    # Write disparity maps
+    #cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
+    #cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+
+    # Write checked disparity map
+    cv.imwrite("left_right_checked.png", np.array(disp_l, dtype=np.uint8))
 
 
 def paper_2017():
@@ -359,6 +376,9 @@ def main():
                         help="Specify the maximum disparity search range.")
     parser.add_argument("--tau", type=int, required=False, default=2,
                         help="Specify the tau (tolerance).")
+    parser.add_argument("--disp_thresh", type=int, required=False, default=5,
+        help="Specify the left-right consistency check absolute difference \
+        threshold")
     args = parser.parse_args()
 
     # Read in images
@@ -366,7 +386,7 @@ def main():
 
     # 2013 paper
     if(args.paper == "2013"):
-        paper_2013(img_l, img_r, args.w, args.dmax, args.tau)
+        paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
 
 
 if __name__ == "__main__":
