@@ -67,12 +67,15 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     # The algorithm does not specify how to properly handle the template window
     # size with the maximum row. Here we have zero-padded for proper handling.
     pad = int((w-1) / 2)
-    shape = img_l.shape
+    shape = img_l.shape 
     padded_shape = (shape[0] + 2*pad, shape[1] + 2*pad)
     padded_img_l = np.zeros(padded_shape, dtype=np.uint8)
     padded_img_l[pad:pad + shape[0], pad:pad + shape[1]] = img_l
     padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
     padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
+
+    min_disparity = 10000
+    max_disparity = 0
 
     #disp = np.zeros(img_l.shape, dtype=np.uint8)
     disp = [[0] * shape[1] for i in range(shape[0])]
@@ -80,6 +83,8 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
     start = time.time()
+
+    # V_max disparity calculation
     for u in range(pad, u_max + 1):
         # Create "template"
         template = padded_img_l[v_max-pad:v_max+pad+1, u-pad:u+pad+1]
@@ -93,7 +98,12 @@ def paper_2013(img_l, img_r, w, dmax, tau):
         # minMaxLoc returns the x (col), y (row) of the max number in the array
         # here we just want the column, but we need to subtract from the length
         # to convert from index to disparity
-        disp[v_max-pad][u-pad] = (result.shape[1]-1) - index[0]
+        curr_disp = (result.shape[1]-1) - index[0]
+        if(curr_disp > max_disparity):
+            max_disparity = curr_disp
+        elif(curr_disp < min_disparity):
+            min_disparity = curr_disp
+        disp[v_max-pad][u-pad] = curr_disp
 
     # for remaining rows
     for v in range(v_max-1, pad-1, -1):
@@ -106,20 +116,20 @@ def paper_2013(img_l, img_r, w, dmax, tau):
                 retrieved_d = disp[v-pad+1][u-pad-1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range:
+                    if i not in search_range and i >= 0:
                         search_range[i] = i
             # get down search range
             retrieved_d = disp[v-pad+1][u-pad]
             for i in range(
                 retrieved_d-tau, retrieved_d+tau+1):
-                if i not in search_range:
+                if i not in search_range and i >= 0:
                     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
                 retrieved_d = disp[v-pad+1][u-pad+1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range:
+                    if i not in search_range and i >= 0:
                         search_range[i] = i
             # Create "template"
             template = padded_img_l[v-pad:v+pad+1, u-pad:u+pad+1]
@@ -137,10 +147,17 @@ def paper_2013(img_l, img_r, w, dmax, tau):
                         highest_correlation_disparity = d
             
             disp[v-pad][u-pad] = highest_correlation_disparity
+            if(highest_correlation_disparity > max_disparity):
+                max_disparity = highest_correlation_disparity
+            elif(highest_correlation_disparity < min_disparity):
+                min_disparity = highest_correlation_disparity
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
-    #cv.imwrite("disp.png", disp)
+    for i in range(len(disp)):
+        for j in range(len(disp[0])):
+            disp[i][j] = ((disp[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
+    cv.imwrite("left_disp_map.png", np.array(disp, dtype=np.uint8))
 
 
 def paper_2017():
