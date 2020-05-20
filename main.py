@@ -128,6 +128,82 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
 
     return disp, min_disparity, max_disparity
 
+def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
+    min_disparity = shape[1]
+    max_disparity = 0
+    disp = [[0] * shape[1] for i in range(shape[0])]
+    v_max = shape[0] + pad - 1
+    u_max = shape[1] + pad - 1
+    # V_max disparity calculation
+    for u in range(pad, u_max + 1):
+        # Create "template"
+        template = padded_img_r[v_max-pad:v_max+pad+1, u-pad:u+pad+1] ##### CHANGED  (changed img_l to img_r)
+        # Select "image"
+        image_for_search = padded_img_l[v_max-pad:v_max+pad+1, ##### CHANGED (changed img_r to img_l, changed from [v_max - pad:v_max+pad+1, max(u-dmax-pad, pad):u+pad+1]
+            u-pad:min(u+dmax+pad+1, u_max+pad+1)]
+        # calculate disparity for each pixel
+        result = cv.matchTemplate(
+            image_for_search, template, method=cv.TM_CCORR_NORMED)
+        _, _, _, index = cv.minMaxLoc(result)
+        # minMaxLoc returns the x (col), y (row) of the max number in the array
+        # here we just want the column, but we need to subtract from the length
+        # to convert from index to disparity
+        curr_disp = index[0]            ##### CHANGED (changed from (result.shape[1] - 1) - index[0])
+        if(curr_disp > max_disparity):
+            max_disparity = curr_disp
+        elif(curr_disp < min_disparity):
+            min_disparity = curr_disp
+        disp[v_max-pad][u-pad] = curr_disp
+
+    # for remaining rows
+    for v in range(v_max-1, pad-1, -1):
+        # for each column
+        for u in range(pad, u_max + 1):
+            search_range = {}
+            # all ranges must have 1 added to the right term for inclusion
+            # get down left search range
+            if(u-pad-1 >= 0):
+                retrieved_d = disp[v-pad+1][u-pad-1]
+                for i in range(
+                    retrieved_d-tau, retrieved_d+tau+1):
+                    if i not in search_range and i >= 0:
+                        search_range[i] = i
+            # get down search range
+            retrieved_d = disp[v-pad+1][u-pad]
+            for i in range(
+                retrieved_d-tau, retrieved_d+tau+1):
+                if i not in search_range and i >= 0:
+                    search_range[i] = i
+            # get down right search range
+            if(u-pad+1 < shape[1]):
+                retrieved_d = disp[v-pad+1][u-pad+1]
+                for i in range(
+                    retrieved_d-tau, retrieved_d+tau+1):
+                    if i not in search_range and i >= 0:
+                        search_range[i] = i
+            # Create "template"
+            template = padded_img_r[v-pad:v+pad+1, u-pad:u+pad+1] ##### CHANGED (changed from img_l to img_r)
+            # Iterate through image segments and calculate NCC
+            highest_correlation = -1
+            highest_correlation_disparity = 0
+            for d in search_range:
+                if(u+d+pad <= u_max+pad):           ##### CHANGED     (changed from u-d-pad>= 0)  
+                    image_for_search = padded_img_l[v-pad:v+pad+1,  ##### CHANGED  (changed from image_for_search = padded_img_r[v-pad:v+pad+1,u-d-pad:u-d+pad+1])
+                        u+d-pad:u+d+pad+1]          ##### CHANGED (marked above)
+                    result = cv.matchTemplate(image_for_search, template, 
+                        method=cv.TM_CCORR_NORMED)[0][0]
+                    if(result > highest_correlation):
+                        highest_correlation = result
+                        highest_correlation_disparity = d
+            
+            disp[v-pad][u-pad] = highest_correlation_disparity
+            if(highest_correlation_disparity > max_disparity):
+                max_disparity = highest_correlation_disparity
+            elif(highest_correlation_disparity < min_disparity):
+                min_disparity = highest_correlation_disparity
+
+    return disp, min_disparity, max_disparity
+
 def normalize_disp_map(disp_map, min_disparity, max_disparity):
     for i in range(len(disp_map)):
         for j in range(len(disp_map[0])):
@@ -156,13 +232,18 @@ def paper_2013(img_l, img_r, w, dmax, tau):
     start = time.time()
     disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
         dmax, tau)
+    disp_r, r_min, r_max = right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad,
+        dmax, tau)
 
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
     
     normalize_disp_map(disp_l, l_min, l_max)
+    normalize_disp_map(disp_r, r_min, r_max)
+    cv.waitKey(0)
     cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
 
 
 def paper_2017():
