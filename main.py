@@ -210,6 +210,8 @@ def normalize_disp_map(disp_map, min_disparity, max_disparity):
             disp_map[i][j] = ((disp_map[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
 
 def left_right_consistency_check_2017(disp_l, disp_r, threshold):
+    max_disparity = 0
+    disp_l_checked = copy.deepcopy(disp_l)
     for i in range(len(disp_l)):
         for j in range(len(disp_l[0])):
             d_l = disp_l[i][j]
@@ -217,7 +219,12 @@ def left_right_consistency_check_2017(disp_l, disp_r, threshold):
             #if (offset >= 0):
             d_r = disp_r[i][offset]
             if abs(d_l - d_r) > threshold:
-                disp_l[i][j] = 0 
+                disp_l_checked[i][j] = 0
+
+            if(d_l > max_disparity):
+                max_disparity = d_l 
+
+    return disp_l_checked, max_disparity
 
 # 2013 Algorithm
 # Disparity calculation algorithm
@@ -249,18 +256,19 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     print("Time elapsed (seconds): ", end - start)
 
     #Left-right consistency check
-    left_right_consistency_check_2017(disp_l, disp_r, disp_thresh)
+    disp_l_checked, max_disparity_checked = left_right_consistency_check_2017(disp_l, disp_r, disp_thresh)
 
     # Normalize disparity maps
     normalize_disp_map(disp_l, l_min, l_max)
-    #normalize_disp_map(disp_r, r_min, r_max)
+    normalize_disp_map(disp_r, r_min, r_max)
+    normalize_disp_map(disp_l_checked, 0, max_disparity_checked)
 
     # Write disparity maps
-    #cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
-    #cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
-    cv.imwrite("left_right_checked.png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("left_right_checked.png", np.array(disp_l_checked, dtype=np.uint8))
 
 
 def paper_2017():
