@@ -240,6 +240,7 @@ def left_right_consistency_check_2017(disp_l, disp_r, threshold):
 
 
 def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
+    start = time.time()
     # Algorithm 1
     # NOTE: The paper mixes up u and v - u is specified as row and v is
     # specified as column number, but they then use the reverse. We have
@@ -256,14 +257,11 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     padded_img_r = np.zeros(padded_shape, dtype=np.uint8)
     padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
 
-    start = time.time()
     # Calculate disparity maps
     disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
                                                      dmax, tau)
     disp_r, r_min, r_max = right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad,
                                                      dmax, tau)
-    end = time.time()
-    print("Time elapsed (seconds): ", end - start)
 
     # Left-right consistency check
     disp_l_checked, max_disparity_checked = left_right_consistency_check_2017(
@@ -282,6 +280,8 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     cv.imwrite("left_right_checked.png", np.array(
         disp_l_checked, dtype=np.uint8))
 
+    end = time.time()
+    print("Time elapsed (seconds): ", end - start)
 
 def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     start = time.time()
