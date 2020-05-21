@@ -291,8 +291,8 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     int_img_l = cv.integral(img_l)
     int_img_r = cv.integral(img_r)
 
-    ic(int_img_l)
-    ic(int_img_r)
+    # ic(int_img_l)
+    # ic(int_img_r)
 
     # test_img = np.zeros(int_img_l.shape)
     # max_lvl = -np.inf
@@ -314,11 +314,11 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
 
     # alg 2: left disparity map estimation
     # data: left + right image, µ, sigma
-    # result: left disp map 
+    # result: left disp map
 
     # Mew (Mu) Calculation
     # (r1 + r2 - r3 - r4) / n
-    
+
     µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
     rho = int((w-1)/2)
     m = img_l.shape[0]
@@ -327,26 +327,26 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     max_µ = -np.inf
     min_µ = np.inf
 
-
-
     for v in range(m - rho):
         for u in range(n - rho):
-            r1 = int_img_l[v+rho,u+rho]
-            r2 = int_img_l[v-rho-1, u-rho-1] 
-            r3 = int_img_l[v+rho, u-rho-1] 
+            r1 = int_img_l[v+rho, u+rho]
+            r2 = int_img_l[v-rho-1, u-rho-1]
+            r3 = int_img_l[v+rho, u-rho-1]
             r4 = int_img_l[v-rho-1, u+rho]
-            µ_map_left[v][u] = r1 + r2 - r3 - r4 / (w ** 2)
+            µ_map_left[v][u] = (r1 + r2 - r3 - r4) / (w ** 2)
             max_µ = max(max_µ, µ_map_left[v][u])
             min_µ = min(min_µ, µ_map_left[v][u])
 
-    ic(µ_map_left)
+    # ic(µ_map_left)
 
-    for i in range(len(µ_map_left)):
-        for j in range(len(µ_map_left[0])):
-            µ_map_left[i][j] = ((µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
+    # for i in range(len(µ_map_left)):
+    #     for j in range(len(µ_map_left[0])):
+    #         µ_map_left[i][j] = (
+    #             (µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
 
+    print("writing mu map")
     cv.imwrite("mu_map.png", µ_map_left)
-    
+
     sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
 
     max_sigma = -np.inf
@@ -355,27 +355,29 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # Sigma Calculation
     for v in range(rho, m-rho):
         for u in range(rho, n-rho):
-            for W_v in range(v-rho, v+rho):
-                for W_u in range(u-rho, u+rho):
+            sum = 0
+            for W_v in range(v-rho, v+rho+1):
+                for W_u in range(u-rho, u+rho+1):
                     i_l = img_l[W_v][W_u]
                     µ_l = µ_map_left[W_v][W_u]
-                    sigma_map_left[v][u] = np.sqrt(((i_l - µ_l) ** 2)/(w ** 2))
-                    max_sigma = max(max_sigma, sigma_map_left[v][u])
-                    min_sigma = min(min_sigma, sigma_map_left[v][u])
+                    sum += float((i_l - µ_l) ** 2)/(w ** 2)
+            sigma_map_left[v][u] = np.sqrt(sum)
+            max_sigma = max(max_sigma, sigma_map_left[v][u])
+            min_sigma = min(min_sigma, sigma_map_left[v][u])
 
-    for i in range(len(sigma_map_left)):
-        for j in range(len(sigma_map_left[0])):
-            sigma_map_left[i][j] = ((sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
+    # for i in range(len(sigma_map_left)):
+    #     for j in range(len(sigma_map_left[0])):
+    #         sigma_map_left[i][j] = (
+    #             (sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
 
+    print("writing sigma map")
     cv.imwrite("sigma_map.png", sigma_map_left)
-    
+
     #v = m - rho - 2
-    #for u_l in range(rho + d_max+1, n-rho-d_max-1): 
+    # for u_l in range(rho + d_max+1, n-rho-d_max-1):
     #    for d in range(0, 71):
     #        u_r = u_l - d
-    #        if 
-            
-
+    #        if
 
 
 def paper_2018():
