@@ -284,6 +284,7 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
 
 
 def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
+    start = time.time()
     # alg 1: int image init
     # data: left and right integral images with dimensions m+1 by n+1
     # result: integral image of size m+1 x n+1
@@ -428,6 +429,9 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     #     for d in range(0, 71):
     #         u_r = u_l - d
     #         if
+
+    end = time.time()
+    print("Time elapsed (seconds): ", end - start)
 
 
 def paper_2018():
