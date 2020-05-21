@@ -284,7 +284,28 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
 
 
 def paper_2017(img_l, img_r, w, dmax, tau, disp_thresh):
-    pass
+    # alg 1: int image init
+    # data: left and right integral images with dimensions m+1 by n+1
+    int_img_l = cv.integral(img_l)
+    int_img_r = cv.integral(img_r)
+
+    # test_img = np.zeros(int_img_l.shape)
+    # max_lvl = -np.inf
+    # min_lvl = np.inf
+
+    # for row in range(int_img_l.shape[0]):
+    #     for col in range(int_img_l.shape[1]):
+    #         max_lvl = max(max_lvl, int_img_l[row][col])
+    #         min_lvl = min(min_lvl, int_img_l[row][col])
+
+    # print(min_lvl)
+    # print(max_lvl)
+    # for row in range(int_img_l.shape[0]):
+    #     for col in range(int_img_l.shape[1]):
+    #         test_img[row][col] = (int_img_l[row][col])/(max_lvl)*256
+
+    # cv.imshow("", test_img)
+    # cv.waitKey(0)
 
 
 def paper_2018():
@@ -407,6 +428,8 @@ def main():
     # 2013 paper
     if(args.paper == "2013"):
         paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
+    elif(args.paper == "2017"):
+        paper_2017(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
 
 
 if __name__ == "__main__":
