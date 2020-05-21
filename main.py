@@ -289,6 +289,7 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # data: left and right integral images with dimensions m+1 by n+1
     # result: integral image of size m+1 x n+1
     # TODO make integral image smaller
+    # NOTE - see: https://stackoverflow.com/questions/30195420/why-the-integral-image-contains-extra-row-and-column-of-zeros
     int_img_l = cv.integral(img_l)
     int_img_r = cv.integral(img_r)
 
@@ -321,7 +322,8 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # (r1 + r2 - r3 - r4) / n
 
     ################ LEFT µ MAP CALCULATION ####################
-    µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
+    µ_map_left = [[0] * int_img_l.shape[1] for i in range(int_img_l.shape[0])]
+    #µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
     rho = int((w-1)/2)
     m = img_l.shape[0]
     n = img_l.shape[1]
@@ -335,9 +337,10 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
             r2 = int_img_l[v-rho-1, u-rho-1]
             r3 = int_img_l[v+rho, u-rho-1]
             r4 = int_img_l[v-rho-1, u+rho]
-            µ_map_left[v][u] = (r1 + r2 - r3 - r4) / (w ** 2)
-            max_µ = max(max_µ, µ_map_left[v][u])
-            min_µ = min(min_µ, µ_map_left[v][u])
+            value = (r1 + r2 - r3 - r4) / (w ** 2)
+            µ_map_left[v][u] = value
+            max_µ = max(max_µ, value)
+            min_µ = min(min_µ, value)
 
     # ic(µ_map_left)
 
@@ -347,10 +350,11 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     #             (µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
 
     print("writing mu map")
-    cv.imwrite("left_mu_map.png", µ_map_left)
+    cv.imwrite("left_mu_map.png", np.array(µ_map_left, dtype=np.float32))
 
     ################ RIGHT µ MAP CALCULATION ################
-    µ_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
+    µ_map_right = [[0] * int_img_r.shape[1] for i in range(int_img_r.shape[0])]
+    #µ_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
     rho = int((w-1)/2)
     m = img_r.shape[0]
     n = img_r.shape[1]
@@ -364,21 +368,23 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
             r2 = int_img_r[v-rho-1, u-rho-1]
             r3 = int_img_r[v+rho, u-rho-1]
             r4 = int_img_r[v-rho-1, u+rho]
-            µ_map_right[v][u] = (r1 + r2 - r3 - r4) / (w ** 2)
-            max_µ = max(max_µ, µ_map_right[v][u])
-            min_µ = min(min_µ, µ_map_right[v][u])
+            value = (r1 + r2 - r3 - r4) / (w ** 2)
+            µ_map_right[v][u] = value
+            max_µ = max(max_µ, value)
+            min_µ = min(min_µ, value)
 
-    ic(µ_map_right)
+    #ic(µ_map_right)
 
-    for i in range(len(µ_map_right)):
-        for j in range(len(µ_map_right[0])):
-            µ_map_right[i][j] = (
-                (µ_map_right[i][j] - min_µ) / (max_µ - min_µ)) * 255
+    # for i in range(len(µ_map_right)):
+    #     for j in range(len(µ_map_right[0])):
+    #         µ_map_right[i][j] = (
+    #             (µ_map_right[i][j] - min_µ) / (max_µ - min_µ)) * 255
 
-    cv.imwrite("right_mu_map.png", µ_map_right)
+    cv.imwrite("right_mu_map.png", np.array(µ_map_right, dtype=np.float32))
 
     ########## Left Sigma Calculation ###########
-    sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
+    sigma_map_left = [[0] * int_img_l.shape[1] for i in range(int_img_l.shape[0])]
+    #sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
 
     max_sigma = -np.inf
     min_sigma = np.inf
@@ -391,16 +397,17 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
                     i_l = img_l[W_v][W_u]
                     µ_l = µ_map_left[W_v][W_u]
                     sum += float((i_l - µ_l) ** 2)/(w ** 2)
-            sigma_map_left[v][u] = np.sqrt(sum)
-            max_sigma = max(max_sigma, sigma_map_left[v][u])
-            min_sigma = min(min_sigma, sigma_map_left[v][u])
+            value = np.sqrt(sum)
+            sigma_map_left[v][u] = value
+            max_sigma = max(max_sigma, value)
+            min_sigma = min(min_sigma, value)
 
     # for i in range(len(sigma_map_left)):
     #     for j in range(len(sigma_map_left[0])):
     #         sigma_map_left[i][j] = (
     #             (sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
 
-    cv.imwrite("left_sigma_map.png", sigma_map_left)
+    cv.imwrite("left_sigma_map.png", np.array(sigma_map_left, dtype=np.float32))
 
     ########## RIGHT Sigma BLOCK Calculation ###########
     # sigma_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
