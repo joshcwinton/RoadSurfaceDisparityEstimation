@@ -349,6 +349,9 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     
     sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
 
+    max_sigma = -np.inf
+    min_sigma = np.inf
+
     # Sigma Calculation
     for v in range(rho, m-rho):
         for u in range(rho, n-rho):
@@ -357,9 +360,14 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
                     i_l = img_l[W_v][W_u]
                     µ_l = µ_map_left[W_v][W_u]
                     sigma_map_left[v][u] = np.sqrt(((i_l - µ_l) ** 2)/(w ** 2))
+                    max_sigma = max(max_sigma, sigma_map_left[v][u])
+                    min_sigma = min(min_sigma, sigma_map_left[v][u])
+
+    for i in range(len(sigma_map_left)):
+        for j in range(len(sigma_map_left[0])):
+            sigma_map_left[i][j] = ((sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
 
     cv.imwrite("sigma_map.png", sigma_map_left)
-    sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
     
     #v = m - rho - 2
     #for u_l in range(rho + d_max+1, n-rho-d_max-1): 
