@@ -319,6 +319,8 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # Mew (Mu) Calculation
     # (r1 + r2 - r3 - r4) / n
     
+
+    ################ LEFT µ MAP CALCULATION ####################
     µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
     rho = int((w-1)/2)
     m = img_l.shape[0]
@@ -345,14 +347,42 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
         for j in range(len(µ_map_left[0])):
             µ_map_left[i][j] = ((µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
 
-    cv.imwrite("mu_map.png", µ_map_left)
+    cv.imwrite("left_mu_map.png", µ_map_left)
     
+    ################ RIGHT µ MAP CALCULATION ################
+    µ_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
+    rho = int((w-1)/2)
+    m = img_r.shape[0]
+    n = img_r.shape[1]
+
+    max_µ = -np.inf
+    min_µ = np.inf
+
+    for v in range(m - rho):
+        for u in range(n - rho):
+            r1 = int_img_r[v+rho,u+rho]
+            r2 = int_img_r[v-rho-1, u-rho-1] 
+            r3 = int_img_r[v+rho, u-rho-1] 
+            r4 = int_img_r[v-rho-1, u+rho]
+            µ_map_right[v][u] = r1 + r2 - r3 - r4 / (w ** 2)
+            max_µ = max(max_µ, µ_map_right[v][u])
+            min_µ = min(min_µ, µ_map_right[v][u])
+
+    ic(µ_map_right)
+
+    for i in range(len(µ_map_right)):
+        for j in range(len(µ_map_right[0])):
+            µ_map_right[i][j] = ((µ_map_right[i][j] - min_µ) / (max_µ - min_µ)) * 255
+
+    cv.imwrite("right_mu_map.png", µ_map_right)
+
+
+    ########## Left Sigma Calculation ###########
     sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
 
     max_sigma = -np.inf
     min_sigma = np.inf
 
-    # Sigma Calculation
     for v in range(rho, m-rho):
         for u in range(rho, n-rho):
             for W_v in range(v-rho, v+rho):
@@ -367,13 +397,35 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
         for j in range(len(sigma_map_left[0])):
             sigma_map_left[i][j] = ((sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
 
-    cv.imwrite("sigma_map.png", sigma_map_left)
+    cv.imwrite("left_sigma_map.png", sigma_map_left)
+
+    ########## RIGHT Sigma BLOCK Calculation ###########
+    # sigma_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
+
+    # max_sigma = -np.inf
+    # min_sigma = np.inf
+
+    # for v in range(rho, m-rho):
+    #     for u in range(rho, n-rho):
+    #         for W_v in range(v-rho, v+rho):
+    #             for W_u in range(u-rho, u+rho):
+    #                 i_r = img_r[W_v][W_u]
+    #                 µ_r = µ_map_right[W_v][W_u]
+    #                 sigma_map_right[v][u] = np.sqrt(((i_r - µ_r) ** 2)/(w ** 2))
+    #                 max_sigma = max(max_sigma, sigma_map_right[v][u])
+    #                 min_sigma = min(min_sigma, sigma_map_right[v][u])
+
+    # for i in range(len(sigma_map_right)):
+    #     for j in range(len(sigma_map_right[0])):
+    #         sigma_map_right[i][j] = ((sigma_map_right[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
+
+    # cv.imwrite("sigma_map.png", sigma_map_right)
     
-    #v = m - rho - 2
-    #for u_l in range(rho + d_max+1, n-rho-d_max-1): 
-    #    for d in range(0, 71):
-    #        u_r = u_l - d
-    #        if 
+    # v = m - rho - 2
+    # for u_l in range(rho + d_max+1, n-rho-d_max-1): 
+    #     for d in range(0, 71):
+    #         u_r = u_l - d
+    #         if 
             
 
 
