@@ -5,6 +5,7 @@ import numpy as np
 import cv2 as cv
 from icecream import ic
 import copy
+import threading
 
 # Authors: Anton Goretsky, Daniel Mallia and Josh Winton
 # Date begun: 5/14/2020
@@ -53,10 +54,9 @@ def check_keypoints(keypoints, orientation, minimum):
         sys.exit()
 
 
-def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
-    min_disparity = shape[1]
-    max_disparity = 0
-    disp = [[0] * shape[1] for i in range(shape[0])]
+def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau, disp, minmaxdispars):
+    minmaxdispars[0] = shape[1]
+    minmaxdispars[1] = 0
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
     # V_max disparity calculation
@@ -74,10 +74,10 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
         # here we just want the column, but we need to subtract from the length
         # to convert from index to disparity
         curr_disp = (result.shape[1]-1) - index[0]
-        if(curr_disp > max_disparity):
-            max_disparity = curr_disp
-        elif(curr_disp < min_disparity):
-            min_disparity = curr_disp
+        if(curr_disp > minmaxdispars[1]):
+            minmaxdispars[1] = curr_disp
+        elif(curr_disp < minmaxdispars[0]):
+            minmaxdispars[0] = curr_disp
         disp[v_max-pad][u-pad] = curr_disp
 
     # for remaining rows
@@ -122,18 +122,15 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
                         highest_correlation_disparity = d
 
             disp[v-pad][u-pad] = highest_correlation_disparity
-            if(highest_correlation_disparity > max_disparity):
-                max_disparity = highest_correlation_disparity
-            elif(highest_correlation_disparity < min_disparity):
-                min_disparity = highest_correlation_disparity
-
-    return disp, min_disparity, max_disparity
+            if(highest_correlation_disparity > minmaxdispars[1]):
+                minmaxdispars[1] = highest_correlation_disparity
+            elif(highest_correlation_disparity < minmaxdispars[0]):
+                minmaxdispars[0] = highest_correlation_disparity
 
 
-def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
-    min_disparity = shape[1]
-    max_disparity = 0
-    disp = [[0] * shape[1] for i in range(shape[0])]
+def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau, disp, minmaxdispars):
+    minmaxdispars[0] = shape[1]
+    minmaxdispars[1] = 0
     v_max = shape[0] + pad - 1
     u_max = shape[1] + pad - 1
     # V_max disparity calculation
@@ -153,10 +150,10 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
         # to convert from index to disparity
         # CHANGED (changed from (result.shape[1] - 1) - index[0])
         curr_disp = index[0]
-        if(curr_disp > max_disparity):
-            max_disparity = curr_disp
-        elif(curr_disp < min_disparity):
-            min_disparity = curr_disp
+        if(curr_disp > minmaxdispars[1]):
+            minmaxdispars[1] = curr_disp
+        elif(curr_disp < minmaxdispars[0]):
+            minmaxdispars[0] = curr_disp
         disp[v_max-pad][u-pad] = curr_disp
 
     # for remaining rows
@@ -202,12 +199,10 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
                         highest_correlation_disparity = d
 
             disp[v-pad][u-pad] = highest_correlation_disparity
-            if(highest_correlation_disparity > max_disparity):
-                max_disparity = highest_correlation_disparity
-            elif(highest_correlation_disparity < min_disparity):
-                min_disparity = highest_correlation_disparity
-
-    return disp, min_disparity, max_disparity
+            if(highest_correlation_disparity > minmaxdispars[1]):
+                minmaxdispars[1] = highest_correlation_disparity
+            elif(highest_correlation_disparity < minmaxdispars[0]):
+                minmaxdispars[0] = highest_correlation_disparity
 
 
 def normalize_disp_map(disp_map, min_disparity, max_disparity):
@@ -258,26 +253,43 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     padded_img_r[pad:pad + shape[0], pad:pad + shape[1]] = img_r
 
     # Calculate disparity maps
-    disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
-                                                     dmax, tau)
-    disp_r, r_min, r_max = right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad,
-                                                     dmax, tau)
+    l_minmaxdispars = [0, 0]
+    r_minmaxdispars = [0, 0]
+    disp_l = [[0] * shape[1] for i in range(shape[0])]
+    disp_r = [[0] * shape[1] for i in range(shape[0])]
+    left_thread = threading.Thread(target=left_right_disparity_2013, args=[padded_img_l, padded_img_r, shape, pad, dmax, tau, disp_l, l_minmaxdispars])
+    right_thread = threading.Thread(target=right_left_disparity_2013, args=[padded_img_l, padded_img_r, shape, pad, dmax, tau, disp_r, r_minmaxdispars])
+    left_thread.start()
+    right_thread.start()
+    l_min = l_minmaxdispars[0]
+    l_max = l_minmaxdispars[1]
+    r_min = r_minmaxdispars[0]
+    r_max = r_minmaxdispars[1]
+    left_thread.join()
+    right_thread.join()
+
 
     # Left-right consistency check
     disp_l_checked, max_disparity_checked = left_right_consistency_check_2017(
         disp_l, disp_r, disp_thresh)
 
     # Normalize disparity maps
-    normalize_disp_map(disp_l, l_min, l_max)
-    normalize_disp_map(disp_r, r_min, r_max)
-    normalize_disp_map(disp_l_checked, 0, max_disparity_checked)
+    left_thread = threading.Thread(target=normalize_disp_map, args=[disp_l, l_min, l_max])
+    right_thread = threading.Thread(target=normalize_disp_map, args=[disp_r, r_min, r_max])
+    checked_thread = threading.Thread(target=normalize_disp_map, args=[disp_l_checked, 0, max_disparity_checked])
+    left_thread.start()
+    right_thread.start()
+    checked_thread.start()
+    left_thread.join()
+    right_thread.join()
+    checked_thread.join()
 
     # Write disparity maps
-    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
-    cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+    cv.imwrite("left_disp_map003.png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("right_disp_map003.png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
-    cv.imwrite("left_right_checked.png", np.array(
+    cv.imwrite("left_right_checked003.png", np.array(
         disp_l_checked, dtype=np.uint8))
 
     end = time.time()
