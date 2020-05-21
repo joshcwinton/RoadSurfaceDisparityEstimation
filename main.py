@@ -284,7 +284,7 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     print("Time elapsed (seconds): ", end - start)
 
 def mean_map_calculation(img, int_img, w):
-    mean_map_left = [[0] * img.shape[1] for i in range(img.shape[0])]
+    mean_map = [[0] * img.shape[1] for i in range(img.shape[0])]
     rho = int((w-1)/2)
     m = img.shape[0]
     n = img.shape[1]
@@ -299,14 +299,32 @@ def mean_map_calculation(img, int_img, w):
             r3 = int_img[v+rho+1, u-rho]
             r4 = int_img[v-rho, u+rho+1]
             value = (r1 + r2 - r3 - r4) / (w ** 2)
-            mean_map_left[v][u] = value
+            mean_map[v][u] = value
             max_mean = max(max_mean, value)
             min_mean = min(min_mean, value)
 
-    return mean_map_left, min_mean, max_mean
+    return mean_map, min_mean, max_mean
 
 def sigma_map_calculation(int_img2, mean_map, w):
-    
+    rho = int((w-1)/2)
+    sigma_map = [[0] * len(mean_map[0]) for i in range(len(mean_map))]
+    min_sig = np.inf
+    max_sig = -np.inf
+
+    m = len(mean_map) 
+    n = len(mean_map[0])
+    for v in range(rho, m - rho):
+        for u in range(rho, n - rho):
+            r1 = int_img2[v+rho+1, u+rho+1]
+            r2 = int_img2[v-rho, u-rho]
+            r3 = int_img2[v+rho+1, u-rho]
+            r4 = int_img2[v-rho, u+rho+1]
+            value = np.sqrt(((r1 + r2 - r3 - r4) / (w ** 2))-(mean_map[v][u] ** 2))
+            min_sig = min(min_sig, value)
+            max_sig = max(max_sig, value)
+            sigma_map[v][u] = value
+
+    return sigma_map, min_sig, max_sig
 
 def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     start = time.time()
@@ -332,58 +350,13 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     #cv.imwrite("right_mu_map.png", np.array(mean_map_right, dtype=np.float32))
 
     ########## SIGMA CALCULATION ###########
-    sigma_map_left = [[0] * int_img_l.shape[1] for i in range(int_img_l.shape[0])]
+    sigma_map_l, min_sigma_l, max_sigma_l = sigma_map_calculation(int_img_l2, mean_map_left, w)
+    sigma_map_r, min_sigma_r, max_sigma_r = sigma_map_calculation(int_img_r2, mean_map_right, w)
 
-    max_sigma = -np.inf
-    min_sigma = np.inf
-
-    for v in range(rho, m-rho):
-        for u in range(rho, n-rho):
-            sum = 0
-            for W_v in range(v-rho, v+rho+1):
-                for W_u in range(u-rho, u+rho+1):
-                    i_l = img_l[W_v][W_u]
-                    mean_l = mean_map_left[W_v][W_u]
-                    sum += float((i_l - mean_l) ** 2)/(w ** 2)
-            value = np.sqrt(sum)
-            sigma_map_left[v][u] = value
-            max_sigma = max(max_sigma, value)
-            min_sigma = min(min_sigma, value)
-
-    for i in range(len(sigma_map_left)):
-        for j in range(len(sigma_map_left[0])):
-            sigma_map_left[i][j] = (
-                (sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
-
-    cv.imwrite("left_sigma_map.png", np.array(sigma_map_left, dtype=np.float32))
-
-    ########## RIGHT Sigma BLOCK Calculation ###########
-    # sigma_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
-
-    # max_sigma = -np.inf
-    # min_sigma = np.inf
-
-    # for v in range(rho, m-rho):
-    #     for u in range(rho, n-rho):
-    #         for W_v in range(v-rho, v+rho):
-    #             for W_u in range(u-rho, u+rho):
-    #                 i_r = img_r[W_v][W_u]
-    #                 mean_r = mean_map_right[W_v][W_u]
-    #                 sigma_map_right[v][u] = np.sqrt(((i_r - mean_r) ** 2)/(w ** 2))
-    #                 max_sigma = max(max_sigma, sigma_map_right[v][u])
-    #                 min_sigma = min(min_sigma, sigma_map_right[v][u])
-
-    # for i in range(len(sigma_map_right)):
-    #     for j in range(len(sigma_map_right[0])):
-    #         sigma_map_right[i][j] = ((sigma_map_right[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
-
-    # cv.imwrite("sigma_map.png", sigma_map_right)
-
-    # v = m - rho - 2
-    # for u_l in range(rho + d_max+1, n-rho-d_max-1):
-    #     for d in range(0, 71):
-    #         u_r = u_l - d
-    #         if
+    # normalize_disp_map(sigma_map_l, min_sigma_l, max_sigma_l)
+    # normalize_disp_map(sigma_map_r, min_sigma_r, max_sigma_r)
+    # cv.imwrite("left_sigma_map.png", np.array(sigma_map_l, dtype=np.float32))
+    # cv.imwrite("right_sigma_map.png", np.array(sigma_map_r, dtype=np.float32))
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
