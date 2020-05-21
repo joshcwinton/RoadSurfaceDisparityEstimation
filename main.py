@@ -82,49 +82,74 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
     # for remaining rows
     for v in range(v_max-1, pad-1, -1):
         # for each column
-        for u in range(pad, u_max + 1):
-            search_range = {}
+        for u in range(pad, u_max + 1): # first disparity - min disparity = index, then index = (len(list) -1) - index
+            search_range = {}   #  calculated ds are 2 and 4 [.77(4), .76(3), .75(2)]   [1, 0, 1]        <<<<<<<<<<u
+            curr_min_disparity = 100
+            curr_max_disparity = 0
             # all ranges must have 1 added to the right term for inclusion
             # get down left search range
             if(u-pad-1 >= 0):
                 retrieved_d = disp[v-pad+1][u-pad-1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range and i >= 0:
+                    if i not in search_range and i >= 0 and u - i - pad >= 0:
                         search_range[i] = i
+                        if(i > curr_max_disparity):
+                            curr_max_disparity = i
+                        if(i < curr_min_disparity):
+                            curr_min_disparity = i
             # get down search range
             retrieved_d = disp[v-pad+1][u-pad]
             for i in range(
                 retrieved_d-tau, retrieved_d+tau+1):
-                if i not in search_range and i >= 0:
+                if i not in search_range and i >= 0 and u - i - pad >= 0:
                     search_range[i] = i
+                    if(i > curr_max_disparity):
+                        curr_max_disparity = i
+                    if(i < curr_min_disparity):
+                        curr_min_disparity = i
             # get down right search range
             if(u-pad+1 < shape[1]):
                 retrieved_d = disp[v-pad+1][u-pad+1]
                 for i in range(
                     retrieved_d-tau, retrieved_d+tau+1):
-                    if i not in search_range and i >= 0:
+                    if i not in search_range and i >= 0 and u - i - pad >= 0:
                         search_range[i] = i
+                        if(i > curr_max_disparity):
+                            curr_max_disparity = i
+                        if(i < curr_min_disparity):
+                            curr_min_disparity = i
             # Create "template"
             template = padded_img_l[v-pad:v+pad+1, u-pad:u+pad+1]
             # Iterate through image segments and calculate NCC
-            highest_correlation = -1
-            highest_correlation_disparity = 0
-            for d in search_range:
-                if(u-d-pad >= 0):
-                    image_for_search = padded_img_r[v-pad:v+pad+1,
-                        u-d-pad:u-d+pad+1]
-                    result = cv.matchTemplate(image_for_search, template, 
-                        method=cv.TM_CCORR_NORMED)[0][0]
-                    if(result > highest_correlation):
-                        highest_correlation = result
-                        highest_correlation_disparity = d
+            image_for_search = padded_img_r[v-pad:v+pad+1,
+                max(u-curr_max_disparity-pad, 0):u-curr_min_disparity+pad+1]
+            mask = [0] * (image_for_search.shape[1] - 2*pad)
+            ic(u)
+            ic(search_range)
+            ic(mask)
+            ic(image_for_search.shape[1])
             
-            disp[v-pad][u-pad] = highest_correlation_disparity
-            if(highest_correlation_disparity > max_disparity):
-                max_disparity = highest_correlation_disparity
-            elif(highest_correlation_disparity < min_disparity):
-                min_disparity = highest_correlation_disparity
+            for d in search_range:
+
+                index = d - curr_min_disparity
+                index = (len(mask)-1) - index
+                ic(index)
+                mask[index] = 1
+            result = cv.matchTemplate(image_for_search, template, 
+                method=cv.TM_CCORR_NORMED)
+            ic(mask)
+            ic(result)
+            mask = np.array(mask, dtype=np.uint8).reshape(1, len(mask))
+            _, _, _, index = cv.minMaxLoc(result, mask)
+            calculated_disparity = (result.shape[1]-1) - index[0] + curr_min_disparity
+            disp[v-pad][u-pad] = calculated_disparity
+            ic(calculated_disparity)
+
+            if(calculated_disparity > max_disparity):
+                max_disparity = calculated_disparity
+            elif(calculated_disparity < min_disparity):
+                min_disparity = calculated_disparity
 
     return disp, min_disparity, max_disparity
 
