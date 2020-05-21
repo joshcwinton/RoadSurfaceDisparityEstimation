@@ -283,108 +283,56 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
 
+def mean_map_calculation(img, int_img, w):
+    mean_map_left = [[0] * img.shape[1] for i in range(img.shape[0])]
+    rho = int((w-1)/2)
+    m = img.shape[0]
+    n = img.shape[1]
+
+    max_mean = -np.inf
+    min_mean = np.inf
+
+    for v in range(rho, m - rho):
+        for u in range(rho, n - rho):
+            r1 = int_img[v+rho+1, u+rho+1]
+            r2 = int_img[v-rho, u-rho]
+            r3 = int_img[v+rho+1, u-rho]
+            r4 = int_img[v-rho, u+rho+1]
+            value = (r1 + r2 - r3 - r4) / (w ** 2)
+            mean_map_left[v][u] = value
+            max_mean = max(max_mean, value)
+            min_mean = min(min_mean, value)
+
+    return mean_map_left, min_mean, max_mean
+
+def sigma_map_calculation(int_img2, mean_map, w):
+    
+
 def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     start = time.time()
     # alg 1: int image init
     # data: left and right integral images with dimensions m+1 by n+1
     # result: integral image of size m+1 x n+1
-    # TODO make integral image smaller
     # NOTE - see: https://stackoverflow.com/questions/30195420/why-the-integral-image-contains-extra-row-and-column-of-zeros
-    int_img_l = cv.integral(img_l)
-    int_img_r = cv.integral(img_r)
-
-    # ic(int_img_l)
-    # ic(int_img_r)
-
-    # test_img = np.zeros(int_img_l.shape)
-    # max_lvl = -np.inf
-    # min_lvl = np.inf
-
-    # for row in range(int_img_l.shape[0]):
-    #     for col in range(int_img_l.shape[1]):
-    #         max_lvl = max(max_lvl, int_img_l[row][col])
-    #         min_lvl = min(min_lvl, int_img_l[row][col])
-
-    # print(min_lvl)
-    # print(max_lvl)
-    # for row in range(int_img_l.shape[0]):
-    #     for col in range(int_img_l.shape[1]):
-    #         test_img[row][col] = (int_img_l[row][col])/(max_lvl)*256
-
-    # cv.imshow("", test_img)
-    # cv.waitKey(0)
+    int_img_l, int_img_l2 = cv.integral2(img_l)
+    int_img_r, int_img_r2 = cv.integral2(img_r)
 
     # alg 2: left disparity map estimation
-    # data: left + right image, µ, sigma
+    # data: left + right image, mean, sigma
     # result: left disp map
 
-    # Mew (Mu) Calculation
-    # (r1 + r2 - r3 - r4) / n
+    ################ MEAN MAP CALCULATION ####################
+    mean_map_left, l_min_mean , l_max_mean = mean_map_calculation(img_l, int_img_l, w)
+    mean_map_right, r_min_mean , r_max_mean = mean_map_calculation(img_r, int_img_r, w)
 
-    ################ LEFT µ MAP CALCULATION ####################
-    µ_map_left = [[0] * int_img_l.shape[1] for i in range(int_img_l.shape[0])]
-    #µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
-    rho = int((w-1)/2)
-    m = img_l.shape[0]
-    n = img_l.shape[1]
+    #normalize_disp_map(mean_map_left, l_min_mean, l_max_mean)
+    #normalize_disp_map(mean_map_right, r_min_mean, r_max_mean)
 
-    max_µ = -np.inf
-    min_µ = np.inf
+    #cv.imwrite("left_mu_map.png", np.array(mean_map_left, dtype=np.float32))
+    #cv.imwrite("right_mu_map.png", np.array(mean_map_right, dtype=np.float32))
 
-    for v in range(m - rho):
-        for u in range(n - rho):
-            r1 = int_img_l[v+rho, u+rho]
-            r2 = int_img_l[v-rho-1, u-rho-1]
-            r3 = int_img_l[v+rho, u-rho-1]
-            r4 = int_img_l[v-rho-1, u+rho]
-            value = (r1 + r2 - r3 - r4) / (w ** 2)
-            µ_map_left[v][u] = value
-            max_µ = max(max_µ, value)
-            min_µ = min(min_µ, value)
-
-    # ic(µ_map_left)
-
-    # for i in range(len(µ_map_left)):
-    #     for j in range(len(µ_map_left[0])):
-    #         µ_map_left[i][j] = (
-    #             (µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
-
-    print("writing mu map")
-    cv.imwrite("left_mu_map.png", np.array(µ_map_left, dtype=np.float32))
-
-    ################ RIGHT µ MAP CALCULATION ################
-    µ_map_right = [[0] * int_img_r.shape[1] for i in range(int_img_r.shape[0])]
-    #µ_map_right = np.zeros(int_img_r.shape, dtype=np.float32)
-    rho = int((w-1)/2)
-    m = img_r.shape[0]
-    n = img_r.shape[1]
-
-    max_µ = -np.inf
-    min_µ = np.inf
-
-    for v in range(m - rho):
-        for u in range(n - rho):
-            r1 = int_img_r[v+rho, u+rho]
-            r2 = int_img_r[v-rho-1, u-rho-1]
-            r3 = int_img_r[v+rho, u-rho-1]
-            r4 = int_img_r[v-rho-1, u+rho]
-            value = (r1 + r2 - r3 - r4) / (w ** 2)
-            µ_map_right[v][u] = value
-            max_µ = max(max_µ, value)
-            min_µ = min(min_µ, value)
-
-    #ic(µ_map_right)
-
-    # for i in range(len(µ_map_right)):
-    #     for j in range(len(µ_map_right[0])):
-    #         µ_map_right[i][j] = (
-    #             (µ_map_right[i][j] - min_µ) / (max_µ - min_µ)) * 255
-
-    cv.imwrite("right_mu_map.png", np.array(µ_map_right, dtype=np.float32))
-
-    ########## Left Sigma Calculation ###########
+    ########## SIGMA CALCULATION ###########
     sigma_map_left = [[0] * int_img_l.shape[1] for i in range(int_img_l.shape[0])]
-    #sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
 
     max_sigma = -np.inf
     min_sigma = np.inf
@@ -395,17 +343,17 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
             for W_v in range(v-rho, v+rho+1):
                 for W_u in range(u-rho, u+rho+1):
                     i_l = img_l[W_v][W_u]
-                    µ_l = µ_map_left[W_v][W_u]
-                    sum += float((i_l - µ_l) ** 2)/(w ** 2)
+                    mean_l = mean_map_left[W_v][W_u]
+                    sum += float((i_l - mean_l) ** 2)/(w ** 2)
             value = np.sqrt(sum)
             sigma_map_left[v][u] = value
             max_sigma = max(max_sigma, value)
             min_sigma = min(min_sigma, value)
 
-    # for i in range(len(sigma_map_left)):
-    #     for j in range(len(sigma_map_left[0])):
-    #         sigma_map_left[i][j] = (
-    #             (sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
+    for i in range(len(sigma_map_left)):
+        for j in range(len(sigma_map_left[0])):
+            sigma_map_left[i][j] = (
+                (sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
 
     cv.imwrite("left_sigma_map.png", np.array(sigma_map_left, dtype=np.float32))
 
@@ -420,8 +368,8 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     #         for W_v in range(v-rho, v+rho):
     #             for W_u in range(u-rho, u+rho):
     #                 i_r = img_r[W_v][W_u]
-    #                 µ_r = µ_map_right[W_v][W_u]
-    #                 sigma_map_right[v][u] = np.sqrt(((i_r - µ_r) ** 2)/(w ** 2))
+    #                 mean_r = mean_map_right[W_v][W_u]
+    #                 sigma_map_right[v][u] = np.sqrt(((i_r - mean_r) ** 2)/(w ** 2))
     #                 max_sigma = max(max_sigma, sigma_map_right[v][u])
     #                 min_sigma = min(min_sigma, sigma_map_right[v][u])
 
