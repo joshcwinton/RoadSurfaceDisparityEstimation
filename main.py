@@ -17,7 +17,7 @@ import copy
 
 # Sample run
 # python3 main.py --left_img=Datasets/Rui/dataset1/original_left/1.png --right_img=Datasets/Rui/dataset1/original_right/1.png --paper="2013"
-# python3 main.py --left_img=Datasets/KITTI/testing/image_2/000000_10.png --right_img=Datasets/KITTI/testing/image_3/000000_10.png --paper="2013"
+# python3 main.py --left_img=Datasets/KITTI2012/testing/image_0/000003_10.png --right_img=Datasets/KITTI2012/testing/image_1/000003_10.png --paper="2013"
 
 
 def read_images(lfp, rfp):
@@ -51,6 +51,7 @@ def check_keypoints(keypoints, orientation, minimum):
     if(num < minimum):
         print("Minimum number of keypoints not met for image: ", orientation)
         sys.exit()
+
 
 def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
     min_disparity = shape[1]
@@ -89,20 +90,20 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
             if(u-pad-1 >= 0):
                 retrieved_d = disp[v-pad+1][u-pad-1]
                 for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
+                        retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range and i >= 0:
                         search_range[i] = i
             # get down search range
             retrieved_d = disp[v-pad+1][u-pad]
             for i in range(
-                retrieved_d-tau, retrieved_d+tau+1):
+                    retrieved_d-tau, retrieved_d+tau+1):
                 if i not in search_range and i >= 0:
                     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
                 retrieved_d = disp[v-pad+1][u-pad+1]
                 for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
+                        retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range and i >= 0:
                         search_range[i] = i
             # Create "template"
@@ -113,13 +114,13 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
             for d in search_range:
                 if(u-d-pad >= 0):
                     image_for_search = padded_img_r[v-pad:v+pad+1,
-                        u-d-pad:u-d+pad+1]
-                    result = cv.matchTemplate(image_for_search, template, 
-                        method=cv.TM_CCORR_NORMED)[0][0]
+                                                    u-d-pad:u-d+pad+1]
+                    result = cv.matchTemplate(image_for_search, template,
+                                              method=cv.TM_CCORR_NORMED)[0][0]
                     if(result > highest_correlation):
                         highest_correlation = result
                         highest_correlation_disparity = d
-            
+
             disp[v-pad][u-pad] = highest_correlation_disparity
             if(highest_correlation_disparity > max_disparity):
                 max_disparity = highest_correlation_disparity
@@ -127,6 +128,7 @@ def left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
                 min_disparity = highest_correlation_disparity
 
     return disp, min_disparity, max_disparity
+
 
 def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau):
     min_disparity = shape[1]
@@ -137,10 +139,11 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
     # V_max disparity calculation
     for u in range(pad, u_max + 1):
         # Create "template"
-        template = padded_img_r[v_max-pad:v_max+pad+1, u-pad:u+pad+1] ##### CHANGED  (changed img_l to img_r)
+        # CHANGED  (changed img_l to img_r)
+        template = padded_img_r[v_max-pad:v_max+pad+1, u-pad:u+pad+1]
         # Select "image"
-        image_for_search = padded_img_l[v_max-pad:v_max+pad+1, ##### CHANGED (changed img_r to img_l, changed from [v_max - pad:v_max+pad+1, max(u-dmax-pad, pad):u+pad+1]
-            u-pad:min(u+dmax+pad+1, u_max+pad+1)]
+        image_for_search = padded_img_l[v_max-pad:v_max+pad+1,  # CHANGED (changed img_r to img_l, changed from [v_max - pad:v_max+pad+1, max(u-dmax-pad, pad):u+pad+1]
+                                        u-pad:min(u+dmax+pad+1, u_max+pad+1)]
         # calculate disparity for each pixel
         result = cv.matchTemplate(
             image_for_search, template, method=cv.TM_CCORR_NORMED)
@@ -148,7 +151,8 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
         # minMaxLoc returns the x (col), y (row) of the max number in the array
         # here we just want the column, but we need to subtract from the length
         # to convert from index to disparity
-        curr_disp = index[0]            ##### CHANGED (changed from (result.shape[1] - 1) - index[0])
+        # CHANGED (changed from (result.shape[1] - 1) - index[0])
+        curr_disp = index[0]
         if(curr_disp > max_disparity):
             max_disparity = curr_disp
         elif(curr_disp < min_disparity):
@@ -165,37 +169,38 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
             if(u-pad-1 >= 0):
                 retrieved_d = disp[v-pad+1][u-pad-1]
                 for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
+                        retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range and i >= 0:
                         search_range[i] = i
             # get down search range
             retrieved_d = disp[v-pad+1][u-pad]
             for i in range(
-                retrieved_d-tau, retrieved_d+tau+1):
+                    retrieved_d-tau, retrieved_d+tau+1):
                 if i not in search_range and i >= 0:
                     search_range[i] = i
             # get down right search range
             if(u-pad+1 < shape[1]):
                 retrieved_d = disp[v-pad+1][u-pad+1]
                 for i in range(
-                    retrieved_d-tau, retrieved_d+tau+1):
+                        retrieved_d-tau, retrieved_d+tau+1):
                     if i not in search_range and i >= 0:
                         search_range[i] = i
             # Create "template"
-            template = padded_img_r[v-pad:v+pad+1, u-pad:u+pad+1] ##### CHANGED (changed from img_l to img_r)
+            # CHANGED (changed from img_l to img_r)
+            template = padded_img_r[v-pad:v+pad+1, u-pad:u+pad+1]
             # Iterate through image segments and calculate NCC
             highest_correlation = -1
             highest_correlation_disparity = 0
             for d in search_range:
-                if(u+d+pad <= u_max+pad):           ##### CHANGED     (changed from u-d-pad>= 0)  
-                    image_for_search = padded_img_l[v-pad:v+pad+1,  ##### CHANGED  (changed from image_for_search = padded_img_r[v-pad:v+pad+1,u-d-pad:u-d+pad+1])
-                        u+d-pad:u+d+pad+1]          ##### CHANGED (marked above)
-                    result = cv.matchTemplate(image_for_search, template, 
-                        method=cv.TM_CCORR_NORMED)[0][0]
+                if(u+d+pad <= u_max+pad):  # CHANGED     (changed from u-d-pad>= 0)
+                    image_for_search = padded_img_l[v-pad:v+pad+1,  # CHANGED  (changed from image_for_search = padded_img_r[v-pad:v+pad+1,u-d-pad:u-d+pad+1])
+                                                    u+d-pad:u+d+pad+1]  # CHANGED (marked above)
+                    result = cv.matchTemplate(image_for_search, template,
+                                              method=cv.TM_CCORR_NORMED)[0][0]
                     if(result > highest_correlation):
                         highest_correlation = result
                         highest_correlation_disparity = d
-            
+
             disp[v-pad][u-pad] = highest_correlation_disparity
             if(highest_correlation_disparity > max_disparity):
                 max_disparity = highest_correlation_disparity
@@ -204,10 +209,13 @@ def right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad, dmax, tau)
 
     return disp, min_disparity, max_disparity
 
+
 def normalize_disp_map(disp_map, min_disparity, max_disparity):
     for i in range(len(disp_map)):
         for j in range(len(disp_map[0])):
-            disp_map[i][j] = ((disp_map[i][j]- min_disparity) / (max_disparity - min_disparity)) * 255
+            disp_map[i][j] = ((disp_map[i][j] - min_disparity) /
+                              (max_disparity - min_disparity)) * 255
+
 
 def left_right_consistency_check_2017(disp_l, disp_r, threshold):
     max_disparity = 0
@@ -216,19 +224,21 @@ def left_right_consistency_check_2017(disp_l, disp_r, threshold):
         for j in range(len(disp_l[0])):
             d_l = disp_l[i][j]
             offset = j - d_l
-            #if (offset >= 0):
+            # if (offset >= 0):
             d_r = disp_r[i][offset]
             if abs(d_l - d_r) > threshold:
                 disp_l_checked[i][j] = 0
 
             if(d_l > max_disparity):
-                max_disparity = d_l 
+                max_disparity = d_l
 
     return disp_l_checked, max_disparity
 
 # 2013 Algorithm
 # Disparity calculation algorithm
 # Assumes rectified input images
+
+
 def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     # Algorithm 1
     # NOTE: The paper mixes up u and v - u is specified as row and v is
@@ -239,7 +249,7 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     # The algorithm does not specify how to properly handle the template window
     # size with the maximum row. Here we have zero-padded for proper handling.
     pad = int((w-1) / 2)
-    shape = img_l.shape 
+    shape = img_l.shape
     padded_shape = (shape[0] + 2*pad, shape[1] + 2*pad)
     padded_img_l = np.zeros(padded_shape, dtype=np.uint8)
     padded_img_l[pad:pad + shape[0], pad:pad + shape[1]] = img_l
@@ -249,14 +259,15 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     start = time.time()
     # Calculate disparity maps
     disp_l, l_min, l_max = left_right_disparity_2013(padded_img_l, padded_img_r, shape, pad,
-        dmax, tau)
+                                                     dmax, tau)
     disp_r, r_min, r_max = right_left_disparity_2013(padded_img_l, padded_img_r, shape, pad,
-        dmax, tau)
+                                                     dmax, tau)
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
 
-    #Left-right consistency check
-    disp_l_checked, max_disparity_checked = left_right_consistency_check_2017(disp_l, disp_r, disp_thresh)
+    # Left-right consistency check
+    disp_l_checked, max_disparity_checked = left_right_consistency_check_2017(
+        disp_l, disp_r, disp_thresh)
 
     # Normalize disparity maps
     normalize_disp_map(disp_l, l_min, l_max)
@@ -268,11 +279,103 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
-    cv.imwrite("left_right_checked.png", np.array(disp_l_checked, dtype=np.uint8))
+    cv.imwrite("left_right_checked.png", np.array(
+        disp_l_checked, dtype=np.uint8))
 
 
-def paper_2017():
-    pass
+def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
+    # alg 1: int image init
+    # data: left and right integral images with dimensions m+1 by n+1
+    # result: integral image of size m+1 x n+1
+    # TODO make integral image smaller
+    int_img_l = cv.integral(img_l)
+    int_img_r = cv.integral(img_r)
+
+    ic(int_img_l)
+    ic(int_img_r)
+
+    # test_img = np.zeros(int_img_l.shape)
+    # max_lvl = -np.inf
+    # min_lvl = np.inf
+
+    # for row in range(int_img_l.shape[0]):
+    #     for col in range(int_img_l.shape[1]):
+    #         max_lvl = max(max_lvl, int_img_l[row][col])
+    #         min_lvl = min(min_lvl, int_img_l[row][col])
+
+    # print(min_lvl)
+    # print(max_lvl)
+    # for row in range(int_img_l.shape[0]):
+    #     for col in range(int_img_l.shape[1]):
+    #         test_img[row][col] = (int_img_l[row][col])/(max_lvl)*256
+
+    # cv.imshow("", test_img)
+    # cv.waitKey(0)
+
+    # alg 2: left disparity map estimation
+    # data: left + right image, µ, sigma
+    # result: left disp map 
+
+    # Mew (Mu) Calculation
+    # (r1 + r2 - r3 - r4) / n
+    
+    µ_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
+    rho = int((w-1)/2)
+    m = img_l.shape[0]
+    n = img_l.shape[1]
+
+    max_µ = -np.inf
+    min_µ = np.inf
+
+
+
+    for v in range(m - rho):
+        for u in range(n - rho):
+            r1 = int_img_l[v+rho,u+rho]
+            r2 = int_img_l[v-rho-1, u-rho-1] 
+            r3 = int_img_l[v+rho, u-rho-1] 
+            r4 = int_img_l[v-rho-1, u+rho]
+            µ_map_left[v][u] = r1 + r2 - r3 - r4 / (w ** 2)
+            max_µ = max(max_µ, µ_map_left[v][u])
+            min_µ = min(min_µ, µ_map_left[v][u])
+
+    ic(µ_map_left)
+
+    for i in range(len(µ_map_left)):
+        for j in range(len(µ_map_left[0])):
+            µ_map_left[i][j] = ((µ_map_left[i][j] - min_µ) / (max_µ - min_µ)) * 255
+
+    cv.imwrite("mu_map.png", µ_map_left)
+    
+    sigma_map_left = np.zeros(int_img_l.shape, dtype=np.float32)
+
+    max_sigma = -np.inf
+    min_sigma = np.inf
+
+    # Sigma Calculation
+    for v in range(rho, m-rho):
+        for u in range(rho, n-rho):
+            for W_v in range(v-rho, v+rho):
+                for W_u in range(u-rho, u+rho):
+                    i_l = img_l[W_v][W_u]
+                    µ_l = µ_map_left[W_v][W_u]
+                    sigma_map_left[v][u] = np.sqrt(((i_l - µ_l) ** 2)/(w ** 2))
+                    max_sigma = max(max_sigma, sigma_map_left[v][u])
+                    min_sigma = min(min_sigma, sigma_map_left[v][u])
+
+    for i in range(len(sigma_map_left)):
+        for j in range(len(sigma_map_left[0])):
+            sigma_map_left[i][j] = ((sigma_map_left[i][j] - min_sigma) / (max_sigma - min_sigma)) * 255
+
+    cv.imwrite("sigma_map.png", sigma_map_left)
+    
+    #v = m - rho - 2
+    #for u_l in range(rho + d_max+1, n-rho-d_max-1): 
+    #    for d in range(0, 71):
+    #        u_r = u_l - d
+    #        if 
+            
+
 
 
 def paper_2018():
@@ -385,7 +488,7 @@ def main():
     parser.add_argument("--tau", type=int, required=False, default=2,
                         help="Specify the tau (tolerance).")
     parser.add_argument("--disp_thresh", type=int, required=False, default=5,
-        help="Specify the left-right consistency check absolute difference \
+                        help="Specify the left-right consistency check absolute difference \
         threshold")
     args = parser.parse_args()
 
@@ -395,6 +498,8 @@ def main():
     # 2013 paper
     if(args.paper == "2013"):
         paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
+    elif(args.paper == "2017"):
+        paper_2017(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
 
 
 if __name__ == "__main__":
