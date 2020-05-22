@@ -326,6 +326,87 @@ def sigma_map_calculation(int_img2, mean_map, w):
 
     return sigma_map, min_sig, max_sig
 
+def left_right_disparity_2017(imgs_l, imgs_r, w, dmax, tau):
+    img_l, mean_map_left, sigma_map_left = imgs_l
+    img_r, mean_map_right, sigma_map_right = imgs_r
+    m = img_l.shape[0]
+    n = img_l.shape[1]
+    rho = int((w-1)/2)
+
+    left_disp = [[0] * n for i in range(m)]
+    min_disparity = n
+    max_disparity = 0
+    
+    # "Vmax" calculation
+    v = m-rho-2
+    for u_l in range(rho+dmax+1, n-rho-dmax-1): 
+        curr_max_correlation = -1
+        curr_best_match = 0
+        for d in range(0, dmax + 1):
+            u_r = u_l - d
+            sigma_lr = sigma_map_left[v][u_l] * sigma_map_right[v][u_r]
+            if(sigma_lr != 0):
+                window_sum = 0
+                for row_off in range(-rho, rho+1):
+                    for col_off in range(-rho, rho+1):
+                        window_sum += int(img_l[v+row_off, u_l+col_off]) * int(img_r[v+row_off, u_r+col_off])
+                correlation = ((window_sum) - 
+                    ((w**2)*mean_map_left[v][u_l]*mean_map_right[v][u_r])) / (n*sigma_lr)
+                if(correlation > curr_max_correlation):
+                    curr_max_correlation = correlation
+                    curr_best_match = d
+        if(curr_best_match > max_disparity):
+            max_disparity = curr_best_match
+        elif(curr_best_match < min_disparity):
+            min_disparity = curr_best_match
+            
+        left_disp[v][u_l] = curr_best_match
+ 
+
+    # Remaining rows
+    for v in range(m-rho-3, (rho+1)-1, -1):
+        for u_l in range(rho+dmax+1,(n-rho-dmax-2)+1):
+            search_range = {}
+            # get down left search range
+            if(u_l-1 >= 0):
+                retrieved_d = left_disp[v+1][u_l-1]
+                for i in range(retrieved_d-tau, retrieved_d+tau+1):
+                    if i not in search_range and i >= 0:
+                        search_range[i] = i
+            # get down search range
+            retrieved_d = left_disp[v+1][u_l]
+            for i in range(retrieved_d-tau, retrieved_d+tau+1):
+                if i not in search_range and i >= 0:
+                    search_range[i] = i
+            # get down right search range
+            if(u_l+1 < n):
+                retrieved_d = left_disp[v+1][u_l+1]
+                for i in range(retrieved_d-tau, retrieved_d+tau+1):
+                    if i not in search_range and i >= 0:
+                        search_range[i] = i
+            for d in search_range:
+                u_r = u_l - d
+                sigma_lr = sigma_map_left[v][u_l] * sigma_map_right[v][u_r]
+                if(sigma_lr != 0):
+                    window_sum = 0
+                    for row_off in range(-rho, rho+1):
+                        for col_off in range(-rho, rho+1):
+                            window_sum += int(img_l[v+row_off, u_l+col_off]) * int(img_r[v+row_off, u_r+col_off])
+                    correlation = ((window_sum) - 
+                        ((w**2)*mean_map_left[v][u_l]*mean_map_right[v][u_r])) / (n*sigma_lr)
+                    if(correlation > curr_max_correlation):
+                        curr_max_correlation = correlation
+                        curr_best_match = d
+            if(curr_best_match > max_disparity):
+                max_disparity = curr_best_match
+            elif(curr_best_match < min_disparity):
+                min_disparity = curr_best_match
+                
+            left_disp[v][u_l] = curr_best_match
+
+    return left_disp, min_disparity, max_disparity
+
+
 def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     start = time.time()
     # alg 1: int image init
@@ -349,7 +430,7 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     #cv.imwrite("left_mu_map.png", np.array(mean_map_left, dtype=np.float32))
     #cv.imwrite("right_mu_map.png", np.array(mean_map_right, dtype=np.float32))
 
-    ########## SIGMA CALCULATION ###########
+    ########## SIGMA CALCULATION ##########
     sigma_map_l, min_sigma_l, max_sigma_l = sigma_map_calculation(int_img_l2, mean_map_left, w)
     sigma_map_r, min_sigma_r, max_sigma_r = sigma_map_calculation(int_img_r2, mean_map_right, w)
 
@@ -357,6 +438,25 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # normalize_disp_map(sigma_map_r, min_sigma_r, max_sigma_r)
     # cv.imwrite("left_sigma_map.png", np.array(sigma_map_l, dtype=np.float32))
     # cv.imwrite("right_sigma_map.png", np.array(sigma_map_r, dtype=np.float32))
+
+    ########## DISPARITY MAP CALCULATION ##########
+    imgs_l = [img_l, mean_map_left, sigma_map_l]
+    imgs_r = [img_r, mean_map_right, sigma_map_r]
+    disp_l, l_min, l_max = left_right_disparity_2017(imgs_l, imgs_r, w, d_max, tau)
+    #disp_r, r_min, r_max = right_left_disparity_2017(imgs_l, imgs_r, w, d_max, tau)
+
+    normalize_disp_map(disp_l, l_min, l_max)
+    #normalize_disp_map(disp_r, r_min, r_max)
+
+    # Write disparity maps
+    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
+    #cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+
+    # Write checked disparity map
+    
+    # cv.imwrite("left_right_checked.png", np.array(
+    #     disp_l_checked, dtype=np.uint8))
+
 
     end = time.time()
     print("Time elapsed (seconds): ", end - start)
