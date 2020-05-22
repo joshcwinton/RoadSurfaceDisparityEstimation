@@ -1,2 +1,3 @@
 numpy==1.18.4
 opencv-python==4.2.0.34
+icecream==2.0.0

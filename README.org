@@ -11,7 +11,70 @@ We used the following datasets to test and build our project:
 1. [[http://www.cvlibs.net/datasets/kitti/][KITTI]]
 2. Other ones
 
+** NOTE 
+Much of this project was worked on through various branches and via Live Share sessions on VS Code.
+Due to this, commit history is limited mostly to those who hosted the Live sessions.
+
+
+** DESCRIPTION 
+This goal of this project was to replicate, to the best of our ability, as many of the published papers
+regarding the novel method of dense subpixel disparity map estimation for the purpose of road surface reconstruction.
+The original researchers have published several papers, in 2013, 2017, 2018A and 2018B
+We extensively studied all 4 papers, and using information throughout all, were able to replicate the following:
+
+
+*** WHAT WAS DONE
+**** Paper 2013
+- Fully completed replication of the published 2013 paper
+- Replication of the custom stereo matching search range
+- Full building of left and right dense disparity maps
+- Full build of a left-right consistency checked dense disparity map
+
+**** Paper 2017
+- Initialized integral and integral squared images for quick sum 
+- Initialized mean and sigma maps for memorization and quick lookups
+- Wrote the framework for the left disparity map using integral images and mean/sigma maps. (Not functioning, strange output)
+
+**** Paper 2018
+- Found keypoints for matching, and perspective transform but didn't complete least squares fitting
+- Read and evaluated paper, presented on it in class
+
 * Installation
 #+begin_src 
 python3 -m pip install -r requirements.txt
 #+end_src
+
+* Datasets
+We used the KITTI dataset provided from the link above.
+There are 3 stereo image pairs provided from said dataset with this project which correspond to the images in the results of the 2013 paper.
+000003_10.png, 000009_10.png, 000112_10.png
+
+* Running the program 
+We provide a demo method for you to run the program.
+
+Paper 2013
+#+begin_src
+python3 main.py --demo=1 --paper='2013' --image=1
+python3 main.py --demo=1 --paper='2013' --image=2
+python3 main.py --demo=1 --paper='2013' --image=3
+#+end_src
+
+Paper 2017
+#+begin_src
+python3 main.py --demo=1 --paper='2013' --image=1
+python3 main.py --demo=1 --paper='2013' --image=2
+python3 main.py --demo=1 --paper='2013' --image=3
+#+end_src
+
+If you want to run anything other than the demo, the following arguments exist and MUST have values.end_src
+--left_img=[PATH_TO_LEFT_STEREO_IMAGE]
+--right_img=[PATH_TO_RIGHT_STEREO_IMAGE]
+--paper=[PAPER_IMPLEMENTATION_TO_RUN]
+--disp_thresh=[CONSISTENCY_CHECK_THROWOUT_THRESHOLD]
+
+Acceptable values for paper include "2013" and "2017"
+Acceptable values for disp_thresh should be between 5-10
+
+
+
+python3 main.py   --paper="2017" --disp_thresh=10
