@@ -39,6 +39,9 @@ We extensively studied all 3 papers, and using information throughout all, were 
 - Found keypoints for matching, and perspective transform but didn't complete least squares fitting
 - Read and evaluated paper, presented on it in class
 
+*** PLEASE NOTE
+Despite our best efforts to optimize the performance of the 2013 and 2017 algorithm implementations, we were unable to achieve aything close to real-time performance. It is our opinion that without further information about the authors' specific implementation, a single-threaded line for line implementation of their algorithms in a high-level language such as Python will simply not be able to reach real-time speeds needed for embedded machines or applications such as self-driving cars.
+
 * Installation
 #+begin_src 
 python3 -m pip install -r requirements.txt
