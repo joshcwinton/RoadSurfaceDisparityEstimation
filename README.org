@@ -1,4 +1,5 @@
 #+TITLE: Road Surface Disparity Estimation
+AUTHORS: Anton Goretsky, Daniel Mallia, and Josh Winton
 
 This project was created as a final project for the Computer Vision course at Hunter College in Spring 2020.
 
@@ -8,8 +9,7 @@ The algorithms used are based largely on those presented in these papers:
 3. [[https://arxiv.org/abs/1807.01874][Road Surface 3D Reconstruction Based on Dense Subpixel Disparity Map Estimation (Fan et al., 2018)]]
 
 We used the following datasets to test and build our project:
-1. [[http://www.cvlibs.net/datasets/kitti/][KITTI]]
-2. Other ones
+1. [[http://www.cvlibs.net/datasets/kitti/][KITTI 2012 and 2015]]
 
 ** NOTE 
 Much of this project was worked on through various branches and via Live Share sessions on VS Code.
@@ -19,8 +19,8 @@ Due to this, commit history is limited mostly to those who hosted the Live sessi
 ** DESCRIPTION 
 This goal of this project was to replicate, to the best of our ability, as many of the published papers
 regarding the novel method of dense subpixel disparity map estimation for the purpose of road surface reconstruction.
-The original researchers have published several papers, in 2013, 2017, 2018A and 2018B
-We extensively studied all 4 papers, and using information throughout all, were able to replicate the following:
+The original researchers have published several papers, in 2013, 2017, and 2018
+We extensively studied all 3 papers, and using information throughout all, were able to replicate the following:
 
 
 *** WHAT WAS DONE
@@ -52,29 +52,33 @@ There are 3 stereo image pairs provided from said dataset with this project whic
 * Running the program 
 We provide a demo method for you to run the program.
 
-Paper 2013
+** Comprehensive Demo
+The following will run a comprehensive demonstration of what we have completed, described above.
+All output images will be produced, marked with <image_type>00000<image_number>.png
+
 #+begin_src
-python3 main.py --demo=1 --paper='2013' --image=1
-python3 main.py --demo=1 --paper='2013' --image=2
-python3 main.py --demo=1 --paper='2013' --image=3
+python3 main.py --demo=True
 #+end_src
 
-Paper 2017
-#+begin_src
-python3 main.py --demo=1 --paper='2013' --image=1
-python3 main.py --demo=1 --paper='2013' --image=2
-python3 main.py --demo=1 --paper='2013' --image=3
-#+end_src
+** List of images that will be produced:
+*** 2013 Paper
+- left_disparity_map
+- right_disparity_map
+- result_disparity_map (left-right consistency checked dense disparity map)
+
+*** 2017 Paper
+- left_int_image, left_int_image_squared
+- right_int_image, right_int_image_squared
+- left_mu_map
+- right_mu_map
+- left_sigma_map
+- right_sigma_map
 
 If you want to run anything other than the demo, the following arguments exist and MUST have values.end_src
 --left_img=[PATH_TO_LEFT_STEREO_IMAGE]
 --right_img=[PATH_TO_RIGHT_STEREO_IMAGE]
---paper=[PAPER_IMPLEMENTATION_TO_RUN]
+--paper=[PAPER_IMPLEMENTATION_TO_RUN] 
 --disp_thresh=[CONSISTENCY_CHECK_THROWOUT_THRESHOLD]
 
 Acceptable values for paper include "2013" and "2017"
 Acceptable values for disp_thresh should be between 5-10
-
-
-
-python3 main.py   --paper="2017" --disp_thresh=10

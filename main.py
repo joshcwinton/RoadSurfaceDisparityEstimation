@@ -25,14 +25,17 @@ def read_images(lfp, rfp):
     img_r = cv.imread(rfp, 0)
 
     if img_l is None:
-        sys.exit("Could not open LEFT image file.")
+        print("Could not open LEFT image file: ", lfp)
+        sys.exit("Please specify a valid image path with --left_img=FILEPATH")
     if img_r is None:
-        sys.exit("Could not open RIGHT image file.")
+        print("Could not open RIGHT image file: ", rfp)
+        sys.exit("Please specify a valid image path with --right_img=FILEPATH")
 
     if(img_l.shape == img_r.shape):
         rows, cols = img_l.shape
         print("Rows: ", rows, " Cols: ", cols)
     else:
+        print("Image dimensions don't match.")
         sys.exit()
 
     return img_l, img_r
@@ -273,11 +276,11 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh, img_number):
     normalize_disp_map(disp_l_checked, 0, max_disparity_checked)
 
     # Write disparity maps
-    cv.imwrite("left_disp_map" + str(img_number).zfill(6) + ".png", np.array(disp_l, dtype=np.uint8))
-    cv.imwrite("right_disp_map" + str(img_number).zfill(6) + ".png", np.array(disp_r, dtype=np.uint8))
+    cv.imwrite("left_disp_map_" + str(img_number).zfill(6) + ".png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("right_disp_map_" + str(img_number).zfill(6) + ".png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
-    cv.imwrite("result_disparity_map" + str(img_number).zfill(6) + ".png", np.array(
+    cv.imwrite("result_disparity_map_" + str(img_number).zfill(6) + ".png", np.array(
         disp_l_checked, dtype=np.uint8))
 
     end = time.time()
@@ -436,7 +439,7 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh, image_number):
     normalize_disp_map(mean_map_right_copy, r_min_mean, r_max_mean)
 
     cv.imwrite("left_mu_map_" + str(image_number).zfill(6) + ".png", np.array(mean_map_left_copy, dtype=np.float32))
-    cv.imwrite("right_mu_map" + str(image_number).zfill(6) + ".png", np.array(mean_map_right_copy, dtype=np.float32))
+    cv.imwrite("right_mu_map_" + str(image_number).zfill(6) + ".png", np.array(mean_map_right_copy, dtype=np.float32))
 
     ########## SIGMA CALCULATION ##########
     sigma_map_l, min_sigma_l, max_sigma_l = sigma_map_calculation(int_img_l2, mean_map_left, w)
