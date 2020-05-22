@@ -239,7 +239,7 @@ def left_right_consistency_check_2017(disp_l, disp_r, threshold):
 # Assumes rectified input images
 
 
-def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
+def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh, img_number):
     start = time.time()
     # Algorithm 1
     # NOTE: The paper mixes up u and v - u is specified as row and v is
@@ -273,11 +273,11 @@ def paper_2013(img_l, img_r, w, dmax, tau, disp_thresh):
     normalize_disp_map(disp_l_checked, 0, max_disparity_checked)
 
     # Write disparity maps
-    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
-    cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
+    cv.imwrite("left_disp_map" + str(img_number).zfill(6) + ".png", np.array(disp_l, dtype=np.uint8))
+    cv.imwrite("right_disp_map" + str(img_number).zfill(6) + ".png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
-    cv.imwrite("left_right_checked.png", np.array(
+    cv.imwrite("result_disparity_map" + str(img_number).zfill(6) + ".png", np.array(
         disp_l_checked, dtype=np.uint8))
 
     end = time.time()
@@ -407,7 +407,7 @@ def left_right_disparity_2017(imgs_l, imgs_r, w, dmax, tau):
     return left_disp, min_disparity, max_disparity
 
 
-def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
+def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh, image_number):
     start = time.time()
     # alg 1: int image init
     # data: left and right integral images with dimensions m+1 by n+1
@@ -415,6 +415,11 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     # NOTE - see: https://stackoverflow.com/questions/30195420/why-the-integral-image-contains-extra-row-and-column-of-zeros
     int_img_l, int_img_l2 = cv.integral2(img_l)
     int_img_r, int_img_r2 = cv.integral2(img_r)
+
+    cv.imwrite("left_int_img_" + str(image_number).zfill(6) + "_10.png", int_img_l)
+    cv.imwrite("left_int_img_squared_" + str(image_number).zfill(6) + "_10.png", int_img_l2)
+    cv.imwrite("right_int_img_" + str(image_number).zfill(6) + "_10.png", int_img_r)
+    cv.imwrite("right_int_img_squared_" + str(image_number).zfill(6) + "_10.png", int_img_r2)
 
     # alg 2: left disparity map estimation
     # data: left + right image, mean, sigma
@@ -424,32 +429,38 @@ def paper_2017(img_l, img_r, w, d_max, tau, disp_thresh):
     mean_map_left, l_min_mean , l_max_mean = mean_map_calculation(img_l, int_img_l, w)
     mean_map_right, r_min_mean , r_max_mean = mean_map_calculation(img_r, int_img_r, w)
 
-    #normalize_disp_map(mean_map_left, l_min_mean, l_max_mean)
-    #normalize_disp_map(mean_map_right, r_min_mean, r_max_mean)
+    mean_map_left_copy = copy.deepcopy(mean_map_left)
+    mean_map_right_copy = copy.deepcopy(mean_map_right)
+    
+    normalize_disp_map(mean_map_left_copy, l_min_mean, l_max_mean)
+    normalize_disp_map(mean_map_right_copy, r_min_mean, r_max_mean)
 
-    #cv.imwrite("left_mu_map.png", np.array(mean_map_left, dtype=np.float32))
-    #cv.imwrite("right_mu_map.png", np.array(mean_map_right, dtype=np.float32))
+    cv.imwrite("left_mu_map_" + str(image_number).zfill(6) + ".png", np.array(mean_map_left_copy, dtype=np.float32))
+    cv.imwrite("right_mu_map" + str(image_number).zfill(6) + ".png", np.array(mean_map_right_copy, dtype=np.float32))
 
     ########## SIGMA CALCULATION ##########
     sigma_map_l, min_sigma_l, max_sigma_l = sigma_map_calculation(int_img_l2, mean_map_left, w)
     sigma_map_r, min_sigma_r, max_sigma_r = sigma_map_calculation(int_img_r2, mean_map_right, w)
 
-    # normalize_disp_map(sigma_map_l, min_sigma_l, max_sigma_l)
-    # normalize_disp_map(sigma_map_r, min_sigma_r, max_sigma_r)
-    # cv.imwrite("left_sigma_map.png", np.array(sigma_map_l, dtype=np.float32))
-    # cv.imwrite("right_sigma_map.png", np.array(sigma_map_r, dtype=np.float32))
+    sigma_map_left_copy = copy.deepcopy(sigma_map_l)
+    sigma_map_right_copy = copy.deepcopy(sigma_map_r)
+
+    normalize_disp_map(sigma_map_left_copy, min_sigma_l, max_sigma_l)
+    normalize_disp_map(sigma_map_right_copy, min_sigma_r, max_sigma_r)
+    cv.imwrite("left_sigma_map_" + str(image_number).zfill(6) + ".png", np.array(sigma_map_left_copy, dtype=np.float32))
+    cv.imwrite("right_sigma_map_" + str(image_number).zfill(6) + ".png", np.array(sigma_map_right_copy, dtype=np.float32))
 
     ########## DISPARITY MAP CALCULATION ##########
     imgs_l = [img_l, mean_map_left, sigma_map_l]
     imgs_r = [img_r, mean_map_right, sigma_map_r]
-    disp_l, l_min, l_max = left_right_disparity_2017(imgs_l, imgs_r, w, d_max, tau)
+    # disp_l, l_min, l_max = left_right_disparity_2017(imgs_l, imgs_r, w, d_max, tau)
     #disp_r, r_min, r_max = right_left_disparity_2017(imgs_l, imgs_r, w, d_max, tau)
 
-    normalize_disp_map(disp_l, l_min, l_max)
+    # normalize_disp_map(disp_l, l_min, l_max)
     #normalize_disp_map(disp_r, r_min, r_max)
 
     # Write disparity maps
-    cv.imwrite("left_disp_map.png", np.array(disp_l, dtype=np.uint8))
+    # cv.imwrite("left_disp_map_" + str(i).zfill(6) + ".png", np.array(disp_l, dtype=np.uint8))
     #cv.imwrite("right_disp_map.png", np.array(disp_r, dtype=np.uint8))
 
     # Write checked disparity map
@@ -554,11 +565,11 @@ def paper_2018():
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser("Disparity Map Estimation")
-    parser.add_argument("--left_img", type=str, required=True,
+    parser.add_argument("--left_img", type=str, required=False, default="",
                         help="Specify the filepath of the left image.")
-    parser.add_argument("--right_img", type=str, required=True,
+    parser.add_argument("--right_img", type=str, required=False, default="",
                         help="Specify the filepath of the right image.")
-    parser.add_argument("--paper", type=str, required=True,
+    parser.add_argument("--paper", type=str, required=False, default="",
                         help="Specify the paper implementation.")
     parser.add_argument("--min_keypoints", type=int, required=False,
                         default=100, help="Specify the minimum number of keypoints")
@@ -574,16 +585,28 @@ def main():
     parser.add_argument("--disp_thresh", type=int, required=False, default=5,
                         help="Specify the left-right consistency check absolute difference \
         threshold")
+    parser.add_argument("--demo", type=str, required=False,
+        help="Specify --demo=True to see a demo of the 2013 algorithm on some demo images.")
     args = parser.parse_args()
 
-    # Read in images
-    img_l, img_r = read_images(args.left_img, args.right_img)
-
-    # 2013 paper
-    if(args.paper == "2013"):
-        paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
+    # Run type:
+    if(args.demo == "True"):
+        for i in [3, 9, 112]:
+            lfp = "data/left/" + str(i).zfill(6) + "_10.png" 
+            rfp = "data/right/" + str(i).zfill(6) + "_10.png" 
+            img_l, img_r = read_images(lfp, rfp)
+            paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh, i)
+            paper_2017(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh, i)
+    elif(args.paper == "2013"):
+        img_l, img_r = read_images(args.left_img, args.right_img)
+        num = args.left_img.rstrip("_10.png").rstrip("_11.png").split("/")[-1]
+        paper_2013(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh, num)
     elif(args.paper == "2017"):
-        paper_2017(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh)
+        img_l, img_r = read_images(args.left_img, args.right_img)
+        num = args.left_img.rstrip("_10.png").rstrip("_11.png").split("/")[-1]
+        paper_2017(img_l, img_r, args.w, args.dmax, args.tau, args.disp_thresh, num)
+    else:
+        print("Please select a valid run option: Demo, 2013 or 2017.")
 
 
 if __name__ == "__main__":
